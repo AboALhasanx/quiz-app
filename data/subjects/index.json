@@ -1,0 +1,12 @@
+{
+  "subjects": [
+    {
+      "id": "ds501",
+      "title": "هياكل البيانات والخوارزميات",
+      "code": "DS501",
+      "chaptersCount": 8,
+      "questionsCount": 474,
+      "file": "ds501.json"
+    }
+  ]
+}

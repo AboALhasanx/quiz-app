@@ -1,33 +1,47 @@
-import { Tabs } from 'expo-router';
-import React from 'react';
+import { Tabs } from "expo-router";
+import { Colors } from "../../constants/colors";
+import { Ionicons } from "@expo/vector-icons";
 
-import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-
-export default function TabLayout() {
-  const colorScheme = useColorScheme();
-
+export default function TabsLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        headerShown: false,
-        tabBarButton: HapticTab,
-      }}>
+        tabBarStyle: { backgroundColor: Colors.surface, borderTopColor: Colors.border },
+        tabBarActiveTintColor: Colors.primary,
+        tabBarInactiveTintColor: Colors.textMuted,
+        headerStyle: { backgroundColor: Colors.background },
+        headerTintColor: Colors.text,
+        headerTitleAlign: "center",
+      }}
+    >
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          title: "الرئيسية",
+          tabBarLabel: "الرئيسية",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="home-outline" color={color} size={size} />
+          ),
         }}
       />
       <Tabs.Screen
-        name="explore"
+        name="stats"
         options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+          title: "إحصائياتي",
+          tabBarLabel: "إحصائياتي",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="bar-chart-outline" color={color} size={size} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="bookmarks"
+        options={{
+          title: "المحفوظات",
+          tabBarLabel: "المحفوظات",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="bookmark-outline" color={color} size={size} />
+          ),
         }}
       />
     </Tabs>

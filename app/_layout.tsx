@@ -1,24 +1,24 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Stack } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import 'react-native-reanimated';
-
-import { useColorScheme } from '@/hooks/use-color-scheme';
-
-export const unstable_settings = {
-  anchor: '(tabs)',
-};
+import { Stack } from "expo-router";
+import { StatusBar } from "expo-status-bar";
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
-
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
+    <>
+      <StatusBar style="light" />
+      <Stack
+        screenOptions={{
+          headerStyle: { backgroundColor: "#0f0f13" },
+          headerTintColor: "#f1f5f9",
+          contentStyle: { backgroundColor: "#0f0f13" },
+        }}
+      >
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+        <Stack.Screen name="subject/[id]" options={{ title: "المادة" }} />
+        <Stack.Screen name="chapter/[id]" options={{ title: "الفصل" }} />
+        <Stack.Screen name="quiz/setup" options={{ title: "إعداد الكوز" }} />
+        <Stack.Screen name="quiz/play" options={{ headerShown: false }} />
+        <Stack.Screen name="quiz/result" options={{ title: "النتيجة" }} />
       </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
+    </>
   );
 }
