@@ -1,4 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { syncResultToFirestore, syncBookmarkToFirestore, deleteBookmarkFromFirestore } from "./firebase";
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Types
@@ -45,8 +46,9 @@ export async function saveResult(result: Omit<QuizResult, "id" | "date">): Promi
       id:   Date.now().toString(),
       date: new Date().toISOString(),
     };
-    const updated = [newResult, ...existing].slice(0, 200); // احتفظ بآخر 200 نتيجة
+    const updated = [newResult, ...existing].slice(0, 200);
     await AsyncStorage.setItem(KEYS.results, JSON.stringify(updated));
+    await syncResultToFirestore(newResult); // ✅ سنك مع Firebase
   } catch (e) {
     console.error("saveResult error:", e);
   }
@@ -88,12 +90,15 @@ export async function saveBookmark(questionId: string, subjectId: string): Promi
   try {
     const existing = await getBookmarks();
     const already  = existing.find(b => b.questionId === questionId);
-    if (already) return; // موجود مسبقاً
-    const updated: Bookmark[] = [
-      ...existing,
-      { questionId, subjectId, savedAt: new Date().toISOString() },
-    ];
+    if (already) return;
+    const newBookmark: Bookmark = {
+      questionId,
+      subjectId,
+      savedAt: new Date().toISOString(),
+    };
+    const updated = [...existing, newBookmark];
     await AsyncStorage.setItem(KEYS.bookmarks, JSON.stringify(updated));
+    await syncBookmarkToFirestore(newBookmark); // ✅ سنك مع Firebase
   } catch (e) {
     console.error("saveBookmark error:", e);
   }
@@ -104,6 +109,7 @@ export async function removeBookmark(questionId: string): Promise<void> {
     const existing = await getBookmarks();
     const updated  = existing.filter(b => b.questionId !== questionId);
     await AsyncStorage.setItem(KEYS.bookmarks, JSON.stringify(updated));
+    await deleteBookmarkFromFirestore(questionId); // ✅ احذف من Firebase
   } catch (e) {
     console.error("removeBookmark error:", e);
   }
@@ -125,7 +131,10 @@ export async function clearBookmarks(): Promise<void> {
     console.error("clearBookmarks error:", e);
   }
 }
-// ── Quiz Resume ──
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Quiz Session (Resume)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 export type QuizSession = {
   subjectId:   string;
@@ -134,7 +143,7 @@ export type QuizSession = {
   mode:        string;
   hardMode:    string;
   order:       string;
-  questionIds: string[];   // ترتيب الأسئلة المخلوطة
+  questionIds: string[];
   answers:     Record<string, string>;
   current:     number;
   timeLeft:    number | null;

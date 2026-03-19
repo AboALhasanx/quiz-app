@@ -4,6 +4,11 @@ import { useFocusEffect } from "expo-router";
 import { Colors } from "../../constants/colors";
 import { getBookmarks, removeBookmark, clearBookmarks, Bookmark } from "../../utils/storage";
 import ds501 from "../../data/subjects/ds501.json";
+import { 
+  fetchBookmarksFromFirestore, 
+  deleteBookmarkFromFirestore 
+} from "../../utils/firebase";
+
 
 const SUBJECTS: Record<string, typeof ds501> = { ds501 };
 
@@ -21,10 +26,11 @@ export default function BookmarksScreen() {
   const [bookmarks, setBookmarks]   = useState<Bookmark[]>([]);
   const [refreshing, setRefreshing] = useState(false);
 
-  const load = async () => {
-    const data = await getBookmarks();
-    setBookmarks(data);
-  };
+const load = async () => {
+  const data = await fetchBookmarksFromFirestore();
+  setBookmarks(data);
+};
+
 
   useFocusEffect(useCallback(() => { load(); }, []));
 
@@ -34,15 +40,20 @@ export default function BookmarksScreen() {
     setRefreshing(false);
   };
 
-  const handleRemove = async (questionId: string) => {
-    await removeBookmark(questionId);
-    setBookmarks(prev => prev.filter(b => b.questionId !== questionId));
-  };
+const handleRemove = async (questionId: string) => {
+  await removeBookmark(questionId);
+  await deleteBookmarkFromFirestore(questionId);
+  setBookmarks(prev => prev.filter(b => b.questionId !== questionId));
+};
 
-  const handleClearAll = async () => {
-    await clearBookmarks();
-    setBookmarks([]);
-  };
+const handleClearAll = async () => {
+  await clearBookmarks();
+  for (const b of bookmarks) {
+    await deleteBookmarkFromFirestore(b.questionId);
+  }
+  setBookmarks([]);
+};
+
 
   return (
     <ScrollView

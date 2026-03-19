@@ -1,21 +1,24 @@
-import { useState, useEffect, useCallback } from "react";
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from "react-native";
+import { useState, useCallback } from "react";
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Alert } from "react-native";
 import { useFocusEffect } from "expo-router";
 import { Colors } from "../../constants/colors";
 import { getResults, clearResults, QuizResult } from "../../utils/storage";
+import { router } from "expo-router";
+import { fetchResultsFromFirestore, logoutUser } from "../../utils/firebase";
+import { getFirestore, collection, getDocs, deleteDoc } from "firebase/firestore";
+import { getAuth } from "firebase/auth";
 
 export default function StatsScreen() {
-  const [results, setResults]     = useState<QuizResult[]>([]);
-  const [loading, setLoading]     = useState(true);
+  const [results, setResults]       = useState<QuizResult[]>([]);
+  const [loading, setLoading]       = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const load = async () => {
-    const data = await getResults();
+    const data = await fetchResultsFromFirestore();
     setResults(data);
     setLoading(false);
   };
 
-  // يحدّث كل مرة تفتح الشاشة
   useFocusEffect(useCallback(() => { load(); }, []));
 
   const onRefresh = async () => {
@@ -25,18 +28,43 @@ export default function StatsScreen() {
   };
 
   const handleClear = async () => {
-    await clearResults();
-    setResults([]);
+    Alert.alert("مسح الكل", "تبي تمسح كل الكوزات؟", [
+      { text: "إلغاء", style: "cancel" },
+      {
+        text: "مسح", style: "destructive",
+        onPress: async () => {
+          await clearResults();
+          const db  = getFirestore();
+          const uid = getAuth().currentUser?.uid;
+          if (uid) {
+            const snap = await getDocs(collection(db, "users", uid, "results"));
+            await Promise.all(snap.docs.map(d => deleteDoc(d.ref)));
+          }
+          setResults([]);
+        }
+      }
+    ]);
+  };
+
+  const handleLogout = () => {
+    Alert.alert("تسجيل الخروج", "تبي تخرج؟", [
+      { text: "إلغاء", style: "cancel" },
+      {
+        text: "خروج", style: "destructive",
+        onPress: async () => {
+          await logoutUser();
+          router.replace("/login");
+        }
+      }
+    ]);
   };
 
   // ── إحصائيات عامة ──
-  const totalQuizzes  = results.length;
-  const avgPercentage = totalQuizzes > 0
-    ? Math.round(results.reduce((s, r) => s + r.percentage, 0) / totalQuizzes)
-    : 0;
-  const bestScore = totalQuizzes > 0
-    ? Math.max(...results.map(r => r.percentage))
-    : 0;
+  const totalQuizzes   = results.length;
+  const avgPercentage  = totalQuizzes > 0
+    ? Math.round(results.reduce((s, r) => s + r.percentage, 0) / totalQuizzes) : 0;
+  const bestScore      = totalQuizzes > 0
+    ? Math.max(...results.map(r => r.percentage)) : 0;
   const totalQuestions = results.reduce((s, r) => s + r.total, 0);
   const totalCorrect   = results.reduce((s, r) => s + r.correct, 0);
 
@@ -45,11 +73,8 @@ export default function StatsScreen() {
     return `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()} ${d.getHours()}:${d.getMinutes().toString().padStart(2, "0")}`;
   };
 
-  const getModeLabel = (mode: string) =>
-    mode === "recitation" ? "تسميع" : "ورقة";
-
-  const getPercentageColor = (p: number) =>
-    p >= 70 ? Colors.correct : p >= 50 ? Colors.primary : Colors.wrong;
+  const getModeLabel       = (mode: string) => mode === "recitation" ? "تسميع" : "ورقة";
+  const getPercentageColor = (p: number)    => p >= 70 ? Colors.correct : p >= 50 ? Colors.primary : Colors.wrong;
 
   if (loading) {
     return (
@@ -65,7 +90,13 @@ export default function StatsScreen() {
       contentContainerStyle={s.content}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
     >
-      <Text style={s.title}>📊 الإحصائيات</Text>
+      {/* العنوان + زر الخروج */}
+      <View style={s.topRow}>
+        <Text style={s.title}>📊 الإحصائيات</Text>
+        <TouchableOpacity onPress={handleLogout}>
+          <Text style={s.logoutBtn}>خروج 🚪</Text>
+        </TouchableOpacity>
+      </View>
 
       {/* بطاقات الإحصائيات العامة */}
       <View style={s.cardsRow}>
@@ -104,7 +135,7 @@ export default function StatsScreen() {
             </TouchableOpacity>
           </View>
 
-          {results.map((r, i) => (
+          {results.map((r) => (
             <View key={r.id} style={s.resultCard}>
               <View style={s.resultHeader}>
                 <Text style={s.resultDate}>{formatDate(r.date)}</Text>
@@ -119,13 +150,12 @@ export default function StatsScreen() {
                 </Text>
                 <View style={s.resultStats}>
                   <Text style={[s.resultStat, { color: Colors.correct }]}>✅ {r.correct}</Text>
-                  <Text style={[s.resultStat, { color: Colors.wrong   }]}>❌ {r.wrong}</Text>
+                  <Text style={[s.resultStat, { color: Colors.wrong }]}>❌ {r.wrong}</Text>
                   <Text style={[s.resultStat, { color: Colors.textMuted }]}>⚪ {r.skipped}</Text>
                   <Text style={[s.resultStat, { color: Colors.text }]}>📝 {r.total}</Text>
                 </View>
               </View>
 
-              {/* Progress Bar */}
               <View style={s.progressBg}>
                 <View style={[
                   s.progressFill,
@@ -142,39 +172,40 @@ export default function StatsScreen() {
           <Text style={s.emptySubText}>أكمل كوز واحد على الأقل لتظهر الإحصائيات</Text>
         </View>
       )}
-
     </ScrollView>
   );
 }
 
 const s = StyleSheet.create({
-  container:       { flex: 1, backgroundColor: Colors.background },
-  content:         { padding: 16, paddingBottom: 60 },
-  center:          { flex: 1, backgroundColor: Colors.background, justifyContent: "center", alignItems: "center" },
-  muted:           { color: Colors.textMuted, fontSize: 15 },
-  title:           { color: Colors.text, fontSize: 22, fontWeight: "bold", textAlign: "right", marginBottom: 16 },
-  cardsRow:        { flexDirection: "row", gap: 10, marginBottom: 10 },
-  card:            { flex: 1, backgroundColor: Colors.card, borderRadius: 12, padding: 14, alignItems: "center", borderWidth: 1, borderColor: Colors.border },
-  cardNum:         { fontSize: 26, fontWeight: "bold", color: Colors.text },
-  cardLabel:       { color: Colors.textMuted, fontSize: 12, marginTop: 4, textAlign: "center" },
-  sectionHeader:   { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 20, marginBottom: 10 },
-  sectionTitle:    { color: Colors.text, fontSize: 16, fontWeight: "bold" },
-  clearBtn:        { color: Colors.wrong, fontSize: 13 },
-  resultCard:      { backgroundColor: Colors.card, borderRadius: 12, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: Colors.border },
-  resultHeader:    { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 10 },
-  resultDate:      { color: Colors.textMuted, fontSize: 12 },
-  modeBadge:       { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
-  modePaper:       { backgroundColor: Colors.primary + "33" },
-  modeRecitation:  { backgroundColor: Colors.correct  + "33" },
-  modeText:        { fontSize: 11, fontWeight: "bold", color: Colors.text },
-  resultBody:      { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 10 },
-  resultPercentage:{ fontSize: 28, fontWeight: "bold" },
-  resultStats:     { flexDirection: "row", gap: 10 },
-  resultStat:      { fontSize: 13, fontWeight: "bold" },
-  progressBg:      { height: 4, backgroundColor: Colors.border, borderRadius: 2 },
-  progressFill:    { height: 4, borderRadius: 2 },
-  emptyBox:        { alignItems: "center", marginTop: 60, gap: 10 },
-  emptyEmoji:      { fontSize: 48 },
-  emptyText:       { color: Colors.text, fontSize: 16, fontWeight: "bold" },
-  emptySubText:    { color: Colors.textMuted, fontSize: 13, textAlign: "center" },
+  container:        { flex: 1, backgroundColor: Colors.background },
+  content:          { padding: 16, paddingBottom: 60 },
+  center:           { flex: 1, backgroundColor: Colors.background, justifyContent: "center", alignItems: "center" },
+  muted:            { color: Colors.textMuted, fontSize: 15 },
+  topRow:           { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 },
+  title:            { color: Colors.text, fontSize: 22, fontWeight: "bold", textAlign: "right" },
+  logoutBtn:        { color: Colors.wrong, fontSize: 13, fontWeight: "bold" },
+  cardsRow:         { flexDirection: "row", gap: 10, marginBottom: 10 },
+  card:             { flex: 1, backgroundColor: Colors.card, borderRadius: 12, padding: 14, alignItems: "center", borderWidth: 1, borderColor: Colors.border },
+  cardNum:          { fontSize: 26, fontWeight: "bold", color: Colors.text },
+  cardLabel:        { color: Colors.textMuted, fontSize: 12, marginTop: 4, textAlign: "center" },
+  sectionHeader:    { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 20, marginBottom: 10 },
+  sectionTitle:     { color: Colors.text, fontSize: 16, fontWeight: "bold" },
+  clearBtn:         { color: Colors.wrong, fontSize: 13 },
+  resultCard:       { backgroundColor: Colors.card, borderRadius: 12, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: Colors.border },
+  resultHeader:     { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 10 },
+  resultDate:       { color: Colors.textMuted, fontSize: 12 },
+  modeBadge:        { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
+  modePaper:        { backgroundColor: Colors.primary + "33" },
+  modeRecitation:   { backgroundColor: Colors.correct  + "33" },
+  modeText:         { fontSize: 11, fontWeight: "bold", color: Colors.text },
+  resultBody:       { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 10 },
+  resultPercentage: { fontSize: 28, fontWeight: "bold" },
+  resultStats:      { flexDirection: "row", gap: 10 },
+  resultStat:       { fontSize: 13, fontWeight: "bold" },
+  progressBg:       { height: 4, backgroundColor: Colors.border, borderRadius: 2 },
+  progressFill:     { height: 4, borderRadius: 2 },
+  emptyBox:         { alignItems: "center", marginTop: 60, gap: 10 },
+  emptyEmoji:       { fontSize: 48 },
+  emptyText:        { color: Colors.text, fontSize: 16, fontWeight: "bold" },
+  emptySubText:     { color: Colors.textMuted, fontSize: 13, textAlign: "center" },
 });

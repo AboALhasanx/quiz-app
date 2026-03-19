@@ -1,7 +1,28 @@
+import { useEffect, useState } from "react";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { getAuth, onAuthStateChanged } from "firebase/auth";
+import { router } from "expo-router";
+import { View, ActivityIndicator } from "react-native";
 
 export default function RootLayout() {
+  const [checking, setChecking] = useState(true);
+
+  useEffect(() => {
+    const auth = getAuth();
+    const unsub = onAuthStateChanged(auth, (user) => {
+      if (!user) router.replace("/login");
+      setChecking(false);
+    });
+    return unsub;
+  }, []);
+
+  if (checking) return (
+    <View style={{ flex: 1, backgroundColor: "#0f0f13", justifyContent: "center", alignItems: "center" }}>
+      <ActivityIndicator color="#6366f1" size="large" />
+    </View>
+  );
+
   return (
     <>
       <StatusBar style="light" />
@@ -12,6 +33,7 @@ export default function RootLayout() {
           contentStyle: { backgroundColor: "#0f0f13" },
         }}
       >
+        <Stack.Screen name="login" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="subject/[id]" options={{ title: "المادة" }} />
         <Stack.Screen name="chapter/[id]" options={{ title: "الفصل" }} />

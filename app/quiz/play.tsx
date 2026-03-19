@@ -34,20 +34,20 @@ export default function QuizPlayScreen() {
   }>();
   const router = useRouter();
 
-  const mode     = params.mode     ?? "paper";
+  const mode = params.mode ?? "paper";
   const hardMode = params.hardMode === "1";
-  const order    = params.order    ?? "random";
+  const order = params.order ?? "random";
 
-  const [questions, setQuestions]   = useState<any[]>([]);
-  const [current, setCurrent]       = useState(0);
-  const [answers, setAnswers]       = useState<Record<string, string>>({});
-  const answersRef                  = useRef<Record<string, string>>({});
-  const [revealed, setRevealed]     = useState(false);
-  const [timeLeft, setTimeLeft]     = useState<number | null>(null);
+  const [questions, setQuestions] = useState<any[]>([]);
+  const [current, setCurrent] = useState(0);
+  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const answersRef = useRef<Record<string, string>>({});
+  const [revealed, setRevealed] = useState(false);
+  const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const [bookmarked, setBookmarked] = useState(false);
   const [sessionChecked, setSessionChecked] = useState(false);
-  const timerRef                    = useRef<ReturnType<typeof setInterval> | null>(null);
-  const questionsRef                = useRef<any[]>([]);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const questionsRef = useRef<any[]>([]);
 
   // ── تحميل الأسئلة من جديد ──
   const loadFresh = () => {
@@ -79,7 +79,7 @@ export default function QuizPlayScreen() {
         session &&
         session.subjectId === (params.subjectId ?? "") &&
         session.chapterId === (params.chapterId ?? "") &&
-        session.topicId   === (params.topicId   ?? "")
+        session.topicId === (params.topicId ?? "")
       ) {
         Alert.alert(
           "استئناف الكوز",
@@ -103,7 +103,7 @@ export default function QuizPlayScreen() {
                   .filter(Boolean)
                   .map((q: any) => shuffleOptions(q));
                 questionsRef.current = qs;
-                answersRef.current   = session.answers;
+                answersRef.current = session.answers;
                 setQuestions(qs);
                 setAnswers(session.answers);
                 setCurrent(session.current);
@@ -124,17 +124,17 @@ export default function QuizPlayScreen() {
   useEffect(() => {
     if (!sessionChecked || questions.length === 0) return;
     saveSession({
-      subjectId:   params.subjectId ?? "",
-      chapterId:   params.chapterId ?? "",
-      topicId:     params.topicId   ?? "",
+      subjectId: params.subjectId ?? "",
+      chapterId: params.chapterId ?? "",
+      topicId: params.topicId ?? "",
       mode,
-      hardMode:    params.hardMode  ?? "0",
+      hardMode: params.hardMode ?? "0",
       order,
       questionIds: questionsRef.current.map(q => q.id),
-      answers:     answersRef.current,
+      answers: answersRef.current,
       current,
       timeLeft,
-      savedAt:     new Date().toISOString(),
+      savedAt: new Date().toISOString(),
     });
   }, [current, answers, sessionChecked]);
 
@@ -148,11 +148,11 @@ export default function QuizPlayScreen() {
     clearInterval(timerRef.current!);
     clearSession(); // ✅ امسح الجلسة
     const p = new URLSearchParams({
-      subjectId:   params.subjectId ?? "",
-      chapterId:   params.chapterId ?? "",
-      topicId:     params.topicId   ?? "",
+      subjectId: params.subjectId ?? "",
+      chapterId: params.chapterId ?? "",
+      topicId: params.topicId ?? "",
       mode,
-      answers:     JSON.stringify(answersRef.current),
+      answers: JSON.stringify(answersRef.current),
       questionIds: JSON.stringify(questionsRef.current.map(q => q.id)),
     });
     router.replace(`/quiz/result?${p.toString()}` as any);
@@ -205,7 +205,7 @@ export default function QuizPlayScreen() {
 
   const getOptionStyle = (index: number) => {
     if (!q) return s.option;
-    const chosenText  = answers[q.id];
+    const chosenText = answers[q.id];
     const correctText = q.correctText;
     if (mode === "paper") {
       return chosenText === q.options[index] ? [s.option, s.optionSelected] : s.option;
@@ -213,17 +213,17 @@ export default function QuizPlayScreen() {
     if (!revealed) {
       return chosenText === q.options[index] ? [s.option, s.optionSelected] : s.option;
     }
-    if (q.options[index] === correctText)                              return [s.option, s.optionCorrect];
+    if (q.options[index] === correctText) return [s.option, s.optionCorrect];
     if (chosenText === q.options[index] && chosenText !== correctText) return [s.option, s.optionWrong];
     return s.option;
   };
 
   const getOptionTextStyle = (index: number) => {
     if (!q) return s.optionText;
-    const chosenText  = answers[q.id];
+    const chosenText = answers[q.id];
     const correctText = q.correctText;
     if (mode === "recitation" && revealed) {
-      if (q.options[index] === correctText)                              return [s.optionText, { color: Colors.correct }];
+      if (q.options[index] === correctText) return [s.optionText, { color: Colors.correct }];
       if (chosenText === q.options[index] && chosenText !== correctText) return [s.optionText, { color: Colors.wrong }];
     }
     if (mode === "paper" && chosenText === q.options[index]) return [s.optionText, { color: Colors.primary }];
@@ -241,16 +241,29 @@ export default function QuizPlayScreen() {
 
   if (!q) return null;
 
-  const progress   = (current + 1) / questions.length;
+  const progress = (current + 1) / questions.length;
   const chosenText = answers[q.id];
 
   return (
     <View style={s.container}>
 
       <View style={s.header}>
-        <TouchableOpacity onPress={() => router.back()} style={s.exitBtn}>
+        <TouchableOpacity
+          onPress={() =>
+            Alert.alert(
+              "خروج من الكوز",
+              "لو خرجت الحين راح يتحفظ تقدمك وتقدر تكمل لاحقاً",
+              [
+                { text: "تراجع", style: "cancel" },
+                { text: "خروج", style: "destructive", onPress: () => router.back() },
+              ]
+            )
+          }
+          style={s.exitBtn}
+        >
           <Text style={s.exitText}>✕</Text>
         </TouchableOpacity>
+
         <Text style={s.counter}>{current + 1} / {questions.length}</Text>
         {hardMode && timeLeft !== null ? (
           <Text style={[s.timer, timeLeft < 60 && s.timerWarning]}>
@@ -314,32 +327,32 @@ export default function QuizPlayScreen() {
 }
 
 const s = StyleSheet.create({
-  container:      { flex: 1, backgroundColor: Colors.background },
-  center:         { flex: 1, backgroundColor: Colors.background, justifyContent: "center", alignItems: "center" },
-  emptyText:      { color: Colors.textMuted, fontSize: 16 },
-  header:         { flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 16, paddingTop: 50 },
-  exitBtn:        { width: 36, height: 36, borderRadius: 18, backgroundColor: Colors.card, justifyContent: "center", alignItems: "center" },
-  exitText:       { color: Colors.textMuted, fontSize: 16 },
-  counter:        { color: Colors.text, fontWeight: "bold", fontSize: 15 },
-  timer:          { color: Colors.primary, fontWeight: "bold", fontSize: 15, width: 60, textAlign: "right" },
-  timerWarning:   { color: Colors.wrong },
-  progressBg:     { height: 4, backgroundColor: Colors.border, marginHorizontal: 16, borderRadius: 2 },
-  progressFill:   { height: 4, backgroundColor: Colors.primary, borderRadius: 2 },
-  scroll:         { flex: 1 },
-  scrollContent:  { padding: 16, paddingBottom: 40 },
-  bookmarkBtn:    { flexDirection: "row", alignItems: "center", gap: 6, alignSelf: "flex-end", marginBottom: 8, padding: 6 },
-  bookmarkText:   { color: Colors.textMuted, fontSize: 13 },
-  questionText:   { color: Colors.text, fontSize: 17, fontWeight: "600", textAlign: "right", lineHeight: 26, marginBottom: 20, marginTop: 8 },
-  option:         { backgroundColor: Colors.card, borderRadius: 12, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: Colors.border, flexDirection: "row", alignItems: "center", gap: 12 },
+  container: { flex: 1, backgroundColor: Colors.background },
+  center: { flex: 1, backgroundColor: Colors.background, justifyContent: "center", alignItems: "center" },
+  emptyText: { color: Colors.textMuted, fontSize: 16 },
+  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 16, paddingTop: 50 },
+  exitBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: Colors.card, justifyContent: "center", alignItems: "center" },
+  exitText: { color: Colors.textMuted, fontSize: 16 },
+  counter: { color: Colors.text, fontWeight: "bold", fontSize: 15 },
+  timer: { color: Colors.primary, fontWeight: "bold", fontSize: 15, width: 60, textAlign: "right" },
+  timerWarning: { color: Colors.wrong },
+  progressBg: { height: 4, backgroundColor: Colors.border, marginHorizontal: 16, borderRadius: 2 },
+  progressFill: { height: 4, backgroundColor: Colors.primary, borderRadius: 2 },
+  scroll: { flex: 1 },
+  scrollContent: { padding: 16, paddingBottom: 40 },
+  bookmarkBtn: { flexDirection: "row", alignItems: "center", gap: 6, alignSelf: "flex-end", marginBottom: 8, padding: 6 },
+  bookmarkText: { color: Colors.textMuted, fontSize: 13 },
+  questionText: { color: Colors.text, fontSize: 17, fontWeight: "600", textAlign: "right", lineHeight: 26, marginBottom: 20, marginTop: 8 },
+  option: { backgroundColor: Colors.card, borderRadius: 12, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: Colors.border, flexDirection: "row", alignItems: "center", gap: 12 },
   optionSelected: { borderColor: Colors.primary, backgroundColor: Colors.primary + "22" },
-  optionCorrect:  { borderColor: Colors.correct, backgroundColor: Colors.correct + "22" },
-  optionWrong:    { borderColor: Colors.wrong,   backgroundColor: Colors.wrong   + "22" },
-  optionLetter:   { color: Colors.textMuted, fontWeight: "bold", fontSize: 15, width: 24, textAlign: "center" },
-  optionText:     { color: Colors.text, fontSize: 14, flex: 1, textAlign: "right" },
-  feedbackBox:    { marginTop: 10, alignItems: "center", gap: 12 },
-  feedbackText:   { fontSize: 16, fontWeight: "bold" },
-  correct:        { color: Colors.correct },
-  wrong:          { color: Colors.wrong },
-  nextBtn:        { backgroundColor: Colors.primary, borderRadius: 12, padding: 16, alignItems: "center", marginTop: 16 },
-  nextBtnText:    { color: "#fff", fontWeight: "bold", fontSize: 16 },
+  optionCorrect: { borderColor: Colors.correct, backgroundColor: Colors.correct + "22" },
+  optionWrong: { borderColor: Colors.wrong, backgroundColor: Colors.wrong + "22" },
+  optionLetter: { color: Colors.textMuted, fontWeight: "bold", fontSize: 15, width: 24, textAlign: "center" },
+  optionText: { color: Colors.text, fontSize: 14, flex: 1, textAlign: "right" },
+  feedbackBox: { marginTop: 10, alignItems: "center", gap: 12 },
+  feedbackText: { fontSize: 16, fontWeight: "bold" },
+  correct: { color: Colors.correct },
+  wrong: { color: Colors.wrong },
+  nextBtn: { backgroundColor: Colors.primary, borderRadius: 12, padding: 16, alignItems: "center", marginTop: 16 },
+  nextBtnText: { color: "#fff", fontWeight: "bold", fontSize: 16 },
 });

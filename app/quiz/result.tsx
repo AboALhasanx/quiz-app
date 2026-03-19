@@ -4,6 +4,8 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { Colors } from "../../constants/colors";
 import ds501 from "../../data/subjects/ds501.json";
 import { saveResult } from "../../utils/storage";
+import { syncResultToFirestore } from "../../utils/firebase";
+
 
 const SUBJECTS: Record<string, typeof ds501> = { ds501 };
 
@@ -59,19 +61,29 @@ export default function ResultScreen() {
 
   const [showReview, setShowReview] = useState(false);
 
-  useEffect(() => {
-    saveResult({
-      subjectId:  params.subjectId ?? "",
-      chapterId:  params.chapterId ?? "",
-      topicId:    params.topicId   ?? "",
-      mode:       params.mode      ?? "paper",
-      correct:    correctCount,
-      wrong:      wrongCount,
-      skipped:    skippedCount,
-      total,
-      percentage,
-    });
-  }, []);
+useEffect(() => {
+  const id   = Date.now().toString();
+  const date = new Date().toISOString();
+
+  const result = {
+    id,
+    date,
+    subjectId:  params.subjectId ?? "",
+    chapterId:  params.chapterId ?? "",
+    topicId:    params.topicId   ?? "",
+    mode:       params.mode      ?? "paper",
+    correct:    correctCount,
+    wrong:      wrongCount,
+    skipped:    skippedCount,
+    total,
+    percentage,
+  };
+
+  saveResult(result);
+  syncResultToFirestore(result);
+}, []);
+
+
 
   return (
     <ScrollView style={s.container} contentContainerStyle={s.content}>
