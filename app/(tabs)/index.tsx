@@ -1,115 +1,132 @@
-import { useState, useCallback } from "react";
-import { View, Text, FlatList, TouchableOpacity, StyleSheet } from "react-native";
-import { useRouter, useFocusEffect } from "expo-router";
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, Image, Dimensions } from "react-native";
+import { useRouter } from "expo-router";
+import { LinearGradient } from "expo-linear-gradient";
 import { Colors } from "../../constants/colors";
-import index from "../../data/subjects/index.json";
-import { getResults, QuizResult } from "../../utils/storage";
+
+const { width } = Dimensions.get("window");
+const CARD_WIDTH = (width - 48) / 2;
+
+const SUBJECTS = [
+  {
+    id: "ds501",
+    title: "هياكل البيانات",
+    code: "DS 501",
+    image: require("../../assets/images/subjects/ds.png"),
+    gradient: ["#4F8EF7", "#6C63FF"] as [string, string],
+  },
+  {
+    id: "oop",
+    title: "البرمجة الكائنية",
+    code: "OOP",
+    image: require("../../assets/images/subjects/oop.png"),
+    gradient: ["#43C6AC", "#191654"] as [string, string],
+  },
+  {
+    id: "cn",
+    title: "شبكات الحاسوب",
+    code: "CN",
+    image: require("../../assets/images/subjects/cn.png"),
+    gradient: ["#F7971E", "#FFD200"] as [string, string],
+  },
+  {
+    id: "os",
+    title: "أنظمة التشغيل",
+    code: "OS",
+    image: require("../../assets/images/subjects/os.png"),
+    gradient: ["#f953c6", "#b91d73"] as [string, string],
+  },
+  {
+    id: "ai",
+    title: "الذكاء الاصطناعي",
+    code: "AI",
+    image: require("../../assets/images/subjects/ai.png"),
+    gradient: ["#A18CD1", "#FBC2EB"] as [string, string],
+  },
+  {
+    id: "se",
+    title: "هندسة البرمجيات",
+    code: "SE",
+    image: require("../../assets/images/subjects/se.png"),
+    gradient: ["#43E97B", "#38F9D7"] as [string, string],
+  },
+];
 
 export default function HomeScreen() {
   const router = useRouter();
-  const [lastResults, setLastResults] = useState<Record<string, QuizResult>>({});
-
-  // آخر نتيجة لكل مادة
-  useFocusEffect(useCallback(() => {
-    getResults().then(results => {
-      const map: Record<string, QuizResult> = {};
-      results.forEach(r => {
-        if (!map[r.subjectId]) map[r.subjectId] = r;
-      });
-      setLastResults(map);
-    });
-  }, []));
-
-  const getScoreColor = (p: number) =>
-    p >= 70 ? Colors.correct : p >= 50 ? Colors.primary : Colors.wrong;
 
   return (
     <View style={s.container}>
-
-      {/* Header */}
-      <View style={s.topRow}>
-        <Text style={s.header}>📚 موادي</Text>
-        <Text style={s.subtitle}>{index.subjects.length} مادة</Text>
-      </View>
+      <Text style={s.pageTitle}>📚 موادي</Text>
 
       <FlatList
-        data={index.subjects}
+        data={SUBJECTS}
         keyExtractor={(item) => item.id}
+        numColumns={2}
+        columnWrapperStyle={s.row}
         showsVerticalScrollIndicator={false}
-        renderItem={({ item }) => {
-          const last = lastResults[item.id];
-          return (
-            <TouchableOpacity
+        contentContainerStyle={{ paddingBottom: 30 }}
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={() => router.push(`/subject/${item.id}` as any)}
+          >
+            <LinearGradient
+              colors={item.gradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
               style={s.card}
-              onPress={() => router.push(`/subject/${item.id}` as any)}
-              activeOpacity={0.75}
             >
-              {/* الصف العلوي */}
-              <View style={s.cardTop}>
-                <View style={s.codeBadge}>
-                  <Text style={s.codeText}>{item.code}</Text>
-                </View>
-                {last && (
-                  <View style={[s.scoreBadge, { backgroundColor: getScoreColor(last.percentage) + "22" }]}>
-                    <Text style={[s.scoreText, { color: getScoreColor(last.percentage) }]}>
-                      آخر نتيجة: {last.percentage}%
-                    </Text>
-                  </View>
-                )}
-              </View>
+              {/* ديكور */}
+              <Text style={s.star1}>✦</Text>
+              <Text style={s.star2}>✦</Text>
 
-              {/* اسم المادة */}
+              {/* النصوص */}
+              <Text style={s.code}>{item.code}</Text>
               <Text style={s.title}>{item.title}</Text>
 
-              {/* الإحصائيات */}
-              <View style={s.cardBottom}>
-                <Text style={s.meta}>📖 {item.chaptersCount} فصول</Text>
-                <Text style={s.dot}>·</Text>
-                <Text style={s.meta}>❓ {item.questionsCount} سؤال</Text>
-                {last && (
-                  <>
-                    <Text style={s.dot}>·</Text>
-                    <Text style={s.meta}>🎯 {last.total} مجاب</Text>
-                  </>
-                )}
-              </View>
-
-              {/* Progress Bar لو في نتيجة */}
-              {last && (
-                <View style={s.progressBg}>
-                  <View style={[
-                    s.progressFill,
-                    { width: `${last.percentage}%`, backgroundColor: getScoreColor(last.percentage) }
-                  ]} />
-                </View>
-              )}
-
-              {/* سهم الدخول */}
-              <Text style={s.arrow}>←</Text>
-            </TouchableOpacity>
-          );
-        }}
+              {/* الأيقونة العائمة */}
+              <Image
+                source={item.image}
+                style={s.icon}
+                resizeMode="contain"
+              />
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
       />
     </View>
   );
 }
 
 const s = StyleSheet.create({
-  container:   { flex: 1, backgroundColor: Colors.background, padding: 16, paddingTop: 60 },
-  topRow:      { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 20 },
-  header:      { fontSize: 24, fontWeight: "bold", color: Colors.text },
-  subtitle:    { color: Colors.textMuted, fontSize: 13 },
-  card:        { backgroundColor: Colors.card, borderRadius: 16, padding: 16, marginBottom: 14, borderWidth: 1, borderColor: Colors.border },
-  cardTop:     { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 },
-  codeBadge:   { backgroundColor: Colors.primary + "22", borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 },
-  codeText:    { color: Colors.primary, fontWeight: "bold", fontSize: 13 },
-  scoreBadge:  { borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 },
-  scoreText:   { fontWeight: "bold", fontSize: 12 },
-  title:       { color: Colors.text, fontSize: 17, fontWeight: "bold", textAlign: "right", marginBottom: 10 },
-  cardBottom:  { flexDirection: "row", justifyContent: "flex-end", alignItems: "center", gap: 6, marginBottom: 10 },
-  meta:        { color: Colors.textMuted, fontSize: 12 },
-  dot:         { color: Colors.border, fontSize: 12 },
-  progressBg:  { height: 4, backgroundColor: Colors.border, borderRadius: 2, marginBottom: 8 },
-  progressFill:{ height: 4, borderRadius: 2 },
-  arrow:       { position: "absolute", left: 16, top: "50%", color: Colors.textMuted, fontSize: 18 },
+  container: { flex: 1, backgroundColor: Colors.background, padding: 16, paddingTop: 60 },
+  pageTitle: { color: Colors.text, fontSize: 22, fontWeight: "bold", textAlign: "right", marginBottom: 20 },
+  row:       { justifyContent: "space-between", marginBottom: 14 },
+  card: {
+    width:        CARD_WIDTH,
+    height:       CARD_WIDTH * 1.15,
+    borderRadius: 20,
+    padding:      16,
+    overflow:     "hidden",
+    justifyContent: "flex-start",
+  },
+  star1:  { position: "absolute", top: 10, right: 12, color: "rgba(255,255,255,0.5)", fontSize: 12 },
+  star2:  { position: "absolute", top: 30, left: 16,  color: "rgba(255,255,255,0.3)", fontSize: 8  },
+  code:   { color: "rgba(255,255,255,0.85)", fontSize: 11, fontWeight: "bold", marginBottom: 6 },
+  title: {
+    color:      "#fff",
+    fontSize:   15,
+    fontWeight: "bold",
+    maxWidth:   "60%",
+    lineHeight: 20,
+  },
+  icon: {
+    position:  "absolute",
+    bottom:    -6,
+    right:     -6,
+    width:     CARD_WIDTH * 0.52,
+    height:    CARD_WIDTH * 0.52,
+    transform: [{ rotate: "10deg" }],
+    opacity:   0.95,
+  },
 });

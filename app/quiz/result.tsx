@@ -4,8 +4,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { Colors } from "../../constants/colors";
 import ds501 from "../../data/subjects/ds501.json";
 import { saveResult } from "../../utils/storage";
-import { syncResultToFirestore } from "../../utils/firebase";
-
+import { syncResultToFirestore, saveQuestionHistory } from "../../utils/firebase";
 
 const SUBJECTS: Record<string, typeof ds501> = { ds501 };
 
@@ -55,35 +54,49 @@ export default function ResultScreen() {
     percentage >= 50 ? "📚" : "💪";
 
   const message =
-    percentage >= 90 ? "ممتاز! أداء رائع"       :
-    percentage >= 70 ? "جيد جداً! استمر"         :
-    percentage >= 50 ? "مقبول، راجع الأخطاء"     : "راجع المادة وحاول مجدداً";
+    percentage >= 90 ? "ممتاز! أداء رائع"   :
+    percentage >= 70 ? "جيد جداً! استمر"     :
+    percentage >= 50 ? "مقبول، راجع الأخطاء" : "راجع المادة وحاول مجدداً";
 
   const [showReview, setShowReview] = useState(false);
 
-useEffect(() => {
-  const id   = Date.now().toString();
-  const date = new Date().toISOString();
+  useEffect(() => {
+    const id   = Date.now().toString();
+    const date = new Date().toISOString();
 
-  const result = {
-    id,
-    date,
-    subjectId:  params.subjectId ?? "",
-    chapterId:  params.chapterId ?? "",
-    topicId:    params.topicId   ?? "",
-    mode:       params.mode      ?? "paper",
-    correct:    correctCount,
-    wrong:      wrongCount,
-    skipped:    skippedCount,
-    total,
-    percentage,
-  };
+    const result = {
+      id,
+      date,
+      subjectId:  params.subjectId ?? "",
+      chapterId:  params.chapterId ?? "",
+      topicId:    params.topicId   ?? "",
+      mode:       params.mode      ?? "paper",
+      correct:    correctCount,
+      wrong:      wrongCount,
+      skipped:    skippedCount,
+      total,
+      percentage,
+    };
 
-  saveResult(result);
-  syncResultToFirestore(result);
-}, []);
+    saveResult(result);
+    syncResultToFirestore(result);
 
+    // احفظ نتيجة كل سؤال منفرداً
+    questions.forEach(q => {
+      const ans         = answers[q.id];
+      const correctText = q.options[q.answer];
+      const isSkipped   = ans === undefined || ans === null || ans === "";
+      const isCorrect   = !isSkipped && ans === correctText;
 
+      if (!isSkipped) {
+        saveQuestionHistory(
+          params.subjectId ?? "",
+          q.id,
+          isCorrect ? "correct" : "wrong"
+        );
+      }
+    });
+  }, []);
 
   return (
     <ScrollView style={s.container} contentContainerStyle={s.content}>
