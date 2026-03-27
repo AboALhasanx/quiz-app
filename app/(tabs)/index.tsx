@@ -57,8 +57,8 @@ export default function HomeScreen() {
   return (
     <View style={s.container}>
       <View style={s.topRow}>
-        <Text style={s.header}>ðŸ“š Ù…ÙˆØ§Ø¯ÙŠ</Text>
-        <Text style={s.subtitle}>{index.subjects.length} Ù…Ø§Ø¯Ø©</Text>
+        <Text style={s.header}>موادي</Text>
+        <Text style={s.subtitle}>{index.subjects.length} مادة</Text>
       </View>
 
       <FlatList
@@ -83,7 +83,7 @@ export default function HomeScreen() {
                 {last && (
                   <View style={[s.scoreBadge, { backgroundColor: getScoreColor(last.percentage) + "22" }]}>
                     <Text style={[s.scoreText, { color: getScoreColor(last.percentage) }]}>
-                      Ø¢Ø®Ø± Ù†ØªÙŠØ¬Ø©: {last.percentage}%
+                      آخر نتيجة: {last.percentage}%
                     </Text>
                   </View>
                 )}
@@ -92,13 +92,13 @@ export default function HomeScreen() {
               <Text style={s.title}>{item.title}</Text>
 
               <View style={s.cardBottom}>
-                <Text style={s.meta}>ðŸ“– {chaptersCount} ÙØµÙˆÙ„</Text>
-                <Text style={s.dot}>Â·</Text>
-                <Text style={s.meta}>â“ {questionsCount} Ø³Ø¤Ø§Ù„</Text>
+                <Text style={s.meta}>الفصول: {chaptersCount}</Text>
+                <Text style={s.dot}>·</Text>
+                <Text style={s.meta}>الأسئلة: {questionsCount}</Text>
                 {last && (
                   <>
-                    <Text style={s.dot}>Â·</Text>
-                    <Text style={s.meta}>ðŸŽ¯ {last.total} Ù…Ø¬Ø§Ø¨</Text>
+                    <Text style={s.dot}>·</Text>
+                    <Text style={s.meta}>المجاب: {last.total}</Text>
                   </>
                 )}
               </View>
@@ -114,7 +114,7 @@ export default function HomeScreen() {
                 </View>
               )}
 
-              <Text style={s.arrow}>â†</Text>
+              <Text style={s.arrow}>←</Text>
             </TouchableOpacity>
           );
         }}

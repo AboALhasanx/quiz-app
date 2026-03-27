@@ -86,7 +86,7 @@ export default function SubjectDetailScreen() {
         <TouchableOpacity
           style={s.fullQuizBtn}
           onPress={() => router.push(
-            `/quiz/play?subjectId=${id}&chapterId=&topicId=&mode=paper&order=random&hardMode=0` as any
+            `/quiz/setup?scope=subject&subjectId=${id}&chapterId=&topicId=` as any
           )}
         >
           <Ionicons name="play-circle-outline" size={18} color="#fff" />

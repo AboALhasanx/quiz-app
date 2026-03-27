@@ -56,16 +56,26 @@ function shuffleOptions(question: any) {
   return { ...question, options, correctText };
 }
 
+function getSelectedQuestionCount(total: number, percentage: number) {
+  if (total <= 0) return 0;
+  return Math.min(total, Math.max(1, Math.floor((total * percentage) / 100)));
+}
+
 export default function QuizPlayScreen() {
   const params = useLocalSearchParams<{
     subjectId: string; chapterId: string; topicId: string;
-    mode: string; order: string; hardMode: string;
+    mode: string; order: string; hardMode: string; percentage?: string;
   }>();
   const router = useRouter();
 
   const mode = params.mode ?? "paper";
   const hardMode = params.hardMode === "1";
   const order = params.order ?? "random";
+  const parsedPercentage = Number(params.percentage ?? "100");
+  const percentage =
+    Number.isFinite(parsedPercentage) && parsedPercentage >= 10 && parsedPercentage <= 100
+      ? parsedPercentage
+      : 100;
 
   const [questions, setQuestions] = useState<any[]>([]);
   const [current, setCurrent] = useState(0);
@@ -92,8 +102,12 @@ export default function QuizPlayScreen() {
         : ch.topics;
       topics.forEach((t: any) => qs.push(...t.questions));
     });
-    qs = qs.map(q => shuffleOptions(q));
-    const final = order === "random" ? shuffle(qs) : qs;
+    const finalCount = getSelectedQuestionCount(qs.length, percentage);
+    const selectedQuestions =
+      order === "random"
+        ? shuffle(qs).slice(0, finalCount)
+        : qs.slice(0, finalCount);
+    const final = selectedQuestions.map(q => shuffleOptions(q));
     questionsRef.current = final;
     setQuestions(final);
     if (hardMode) setTimeLeft(final.length * 60);
@@ -108,7 +122,11 @@ export default function QuizPlayScreen() {
         session &&
         session.subjectId === (params.subjectId ?? "") &&
         session.chapterId === (params.chapterId ?? "") &&
-        session.topicId === (params.topicId ?? "")
+        session.topicId === (params.topicId ?? "") &&
+        session.mode === mode &&
+        session.order === order &&
+        session.hardMode === (params.hardMode ?? "0") &&
+        (session.percentage ?? 100) === percentage
       ) {
         Alert.alert(
           "استئناف الكوز",
@@ -159,6 +177,7 @@ export default function QuizPlayScreen() {
       mode,
       hardMode: params.hardMode ?? "0",
       order,
+      percentage,
       questionIds: questionsRef.current.map(q => q.id),
       answers: answersRef.current,
       current,

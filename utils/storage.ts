@@ -143,6 +143,7 @@ export type QuizSession = {
   mode:        string;
   hardMode:    string;
   order:       string;
+  percentage:  number;
   questionIds: string[];
   answers:     Record<string, string>;
   current:     number;
