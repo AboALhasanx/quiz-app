@@ -4,10 +4,15 @@ import {
   deleteDoc, orderBy, query,
 } from "firebase/firestore";
 import {
-  getAuth, signInWithEmailAndPassword,
-  createUserWithEmailAndPassword, signOut
+  initializeAuth,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut,
+  getAuth,
 } from "firebase/auth";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { QuizResult, Bookmark } from "./storage";
+
 
 const firebaseConfig = {
   apiKey:            "AIzaSyDOSRnQiJcfn78WKxEmzIV-Uz8y2DPRi_8",
@@ -18,9 +23,37 @@ const firebaseConfig = {
   appId:             "1:410999962659:android:29722ece78ba44d6210596",
 };
 
-const app  = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
-const db   = getFirestore(app);
-const auth = getAuth(app);
+
+const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+const db  = getFirestore(app);
+
+
+// ✅ Custom persistence — يحفظ الجلسة في AsyncStorage
+const asyncStoragePersistence = {
+  type: "LOCAL" as const,
+  async _isAvailable(): Promise<boolean> { return true; },
+  async _set(key: string, value: string): Promise<void> {
+    await AsyncStorage.setItem(key, value);
+  },
+  async _get(key: string): Promise<string | null> {
+    return AsyncStorage.getItem(key);
+  },
+  async _remove(key: string): Promise<void> {
+    await AsyncStorage.removeItem(key);
+  },
+  _addListener(_key: string, _listener: unknown): void {},
+  _removeListener(_key: string, _listener: unknown): void {},
+};
+
+
+// ✅ آمن لـ APK + Dev + Hot Reload
+let auth: ReturnType<typeof getAuth>;
+try {
+  auth = initializeAuth(app, { persistence: asyncStoragePersistence as any });
+} catch {
+  auth = getAuth(app);
+}
+
 
 // ── Auth ──
 export async function ensureAuth(): Promise<string> {
@@ -43,6 +76,7 @@ export async function logoutUser(): Promise<void> {
 export function getCurrentUser() {
   return auth.currentUser;
 }
+
 
 // ── Results ──
 export async function syncResultToFirestore(result: QuizResult): Promise<void> {
@@ -67,6 +101,7 @@ export async function deleteResultFromFirestore(resultId: string): Promise<void>
     await deleteDoc(doc(db, "users", uid, "results", resultId));
   } catch (e) { console.error("deleteResult error:", e); }
 }
+
 
 // ── Bookmarks ──
 export async function syncBookmarkToFirestore(bookmark: Bookmark): Promise<void> {

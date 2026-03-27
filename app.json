@@ -38,7 +38,9 @@
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#0f0f13",
-          "dark": { "backgroundColor": "#0f0f13" }
+          "dark": {
+            "backgroundColor": "#0f0f13"
+          }
         }
       ],
       "expo-font",
@@ -48,6 +50,13 @@
     ],
     "experiments": {
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "f022165f-4c9e-4699-ad95-e1cf2670b7a3"
+      }
+    },
+    "owner": "aboalhasannn"
   }
 }
