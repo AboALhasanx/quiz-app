@@ -3,9 +3,19 @@ import { Stack, router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { View, ActivityIndicator } from "react-native";
+import { DarkTheme, ThemeProvider } from "@react-navigation/native";
+import * as SystemUI from "expo-system-ui";   // ← جديد
+
+const AppTheme = {
+  ...DarkTheme,
+  colors: { ...DarkTheme.colors, background: "#0f0f13", card: "#0f0f13" },
+};
 
 export default function RootLayout() {
   const [checking, setChecking] = useState(true);
+
+  // ✅ هذا السطر هو الحل الفعلي — يصبغ خلفية Android الأصلية
+  SystemUI.setBackgroundColorAsync("#0f0f13");
 
   useEffect(() => {
     const auth = getAuth();
@@ -13,44 +23,37 @@ export default function RootLayout() {
       if (!user) router.replace("/login");
       setChecking(false);
     });
-
     return unsub;
   }, []);
 
   if (checking) {
     return (
-      <View
-        style={{
-          flex: 1,
-          backgroundColor: "#0f0f13",
-          justifyContent: "center",
-          alignItems: "center",
-        }}
-      >
+      <View style={{ flex: 1, backgroundColor: "#0f0f13", justifyContent: "center", alignItems: "center" }}>
         <ActivityIndicator color="#6366f1" size="large" />
       </View>
     );
   }
 
   return (
-    <>
+    <ThemeProvider value={AppTheme}>
       <StatusBar style="light" />
       <Stack
         screenOptions={{
-          headerStyle: { backgroundColor: "#0f0f13" },
+          headerStyle:     { backgroundColor: "#0f0f13" },
           headerTintColor: "#f1f5f9",
-          contentStyle: { backgroundColor: "#0f0f13" },
+          contentStyle:    { backgroundColor: "#0f0f13" },
+          animation:       "fade"  ,
         }}
       >
-        <Stack.Screen name="login" options={{ headerShown: false }} />
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="subject/[id]" options={{ title: "المادة" }} />
-        <Stack.Screen name="chapter/[id]" options={{ title: "الفصل" }} />
+        <Stack.Screen name="login"                  options={{ headerShown: false }} />
+        <Stack.Screen name="(tabs)"                 options={{ headerShown: false }} />
+        <Stack.Screen name="subject/[id]"           options={{ title: "المادة" }} />
+        <Stack.Screen name="chapter/[id]"           options={{ title: "الفصل" }} />
         <Stack.Screen name="bookmarks/[questionId]" options={{ title: "تفاصيل المحفوظ" }} />
-        <Stack.Screen name="quiz/setup" options={{ title: "إعداد الكوز" }} />
-        <Stack.Screen name="quiz/play" options={{ headerShown: false }} />
-        <Stack.Screen name="quiz/result" options={{ title: "النتيجة" }} />
+        <Stack.Screen name="quiz/setup"             options={{ title: "إعداد الكوز" }} />
+        <Stack.Screen name="quiz/play"              options={{ headerShown: false }} />
+        <Stack.Screen name="quiz/result"            options={{ title: "النتيجة" }} />
       </Stack>
-    </>
+    </ThemeProvider>
   );
 }
