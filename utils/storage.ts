@@ -72,6 +72,16 @@ export async function clearResults(): Promise<void> {
   }
 }
 
+export async function removeResult(resultId: string): Promise<void> {
+  try {
+    const existing = await getResults();
+    const updated = existing.filter(result => result.id !== resultId);
+    await AsyncStorage.setItem(KEYS.results, JSON.stringify(updated));
+  } catch (e) {
+    console.error("removeResult error:", e);
+  }
+}
+
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Bookmarks
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

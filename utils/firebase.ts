@@ -61,6 +61,13 @@ export async function fetchResultsFromFirestore(): Promise<QuizResult[]> {
   } catch (e) { console.error("fetchResults error:", e); return []; }
 }
 
+export async function deleteResultFromFirestore(resultId: string): Promise<void> {
+  try {
+    const uid = await ensureAuth();
+    await deleteDoc(doc(db, "users", uid, "results", resultId));
+  } catch (e) { console.error("deleteResult error:", e); }
+}
+
 // ── Bookmarks ──
 export async function syncBookmarkToFirestore(bookmark: Bookmark): Promise<void> {
   try {
