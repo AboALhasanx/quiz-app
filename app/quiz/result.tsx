@@ -14,6 +14,7 @@ import { saveResult, markTopicCompletion, markChapterCompletion, markSubjectComp
 
 type Subject = any;
 
+
 const SUBJECT_DATA_BY_FILE: Record<string, Subject> = {
   "ai_data.json": aiData,
   "cn_data.json": cnData,
@@ -23,26 +24,43 @@ const SUBJECT_DATA_BY_FILE: Record<string, Subject> = {
   "se_data.json": seData,
 };
 
+
 const SUBJECTS = index.subjects.reduce<Record<string, Subject>>((acc, subject) => {
   const data = SUBJECT_DATA_BY_FILE[subject.file];
   if (data) acc[subject.id] = data;
   return acc;
 }, {});
 
-function getQuestionText(question: any) {
-  return question.text ?? question.text_en ?? "";
+
+function getQuestionText(question: any, lang = "ar"): string {
+  return lang === "en"
+    ? (question.text_en    ?? question.text    ?? "")
+    : (question.text       ?? question.text_en ?? "");
 }
 
-function getQuestionOptions(question: any): string[] {
-  return question.options ?? question.options_en ?? [];
+function getQuestionOptions(question: any, lang = "ar"): string[] {
+  return lang === "en"
+    ? (question.options_en ?? question.options    ?? [])
+    : (question.options    ?? question.options_en ?? []);
 }
+
+function getQuestionExplanation(question: any, lang = "ar"): string {
+  return lang === "en"
+    ? (question.explanation_en ?? question.explanation ?? "")
+    : (question.explanation    ?? question.explanation_en ?? "");
+}
+
 
 export default function ResultScreen() {
   const params = useLocalSearchParams<{
     subjectId: string; chapterId: string; topicId: string;
-    mode: string; answers: string; questionIds: string; scope?: string; percentage?: string;
+    mode: string; answers: string; questionIds: string;
+    scope?: string; percentage?: string;
+    lang?: string;
   }>();
   const router = useRouter();
+
+  const [lang, setLang] = useState<"ar" | "en">((params.lang ?? "ar") as "ar" | "en");
 
   const answers:     Record<string, string> = JSON.parse(params.answers     ?? "{}");
   const questionIds: string[]               = JSON.parse(params.questionIds ?? "[]");
@@ -65,17 +83,18 @@ export default function ResultScreen() {
     .map(id => allQuestions.find(q => q.id === id))
     .filter(Boolean);
 
+  // الـ scoring يعتمد دائماً على options الأصلية (ar) بغض النظر عن اللغة المعروضة
   let correctCount = 0, wrongCount = 0, skippedCount = 0;
   questions.forEach(q => {
     const ans         = answers[q.id];
-    const correctText = getQuestionOptions(q)[q.answer];
+    const correctText = getQuestionOptions(q, "ar")[q.answer];
     if (ans === undefined || ans === null || ans === "") skippedCount++;
     else if (ans === correctText) correctCount++;
     else wrongCount++;
   });
 
-  const total      = questions.length;
-  const percentage = total > 0 ? Math.round((correctCount / total) * 100) : 0;
+  const total              = questions.length;
+  const percentage         = total > 0 ? Math.round((correctCount / total) * 100) : 0;
   const selectedPercentage = Number(params.percentage ?? "100");
   const scope =
     params.scope ??
@@ -87,25 +106,29 @@ export default function ResultScreen() {
     percentage >= 50 ? "📚" : "💪";
 
   const message =
-    percentage >= 90 ? "ممتاز! أداء رائع"       :
-    percentage >= 70 ? "جيد جداً! استمر"         :
-    percentage >= 50 ? "مقبول، راجع الأخطاء"     : "راجع المادة وحاول مجدداً";
+    percentage >= 90 ? "ممتاز! أداء رائع"    :
+    percentage >= 70 ? "جيد جداً! استمر"      :
+    percentage >= 50 ? "مقبول، راجع الأخطاء"  : "راجع المادة وحاول مجدداً";
 
   const [showReview, setShowReview] = useState(false);
-
   const [expandedExp, setExpandedExp] = useState<Record<string, boolean>>({});
   const toggleExp = (id: string) => setExpandedExp(prev => ({ ...prev, [id]: !prev[id] }));
+
+  // الـ direction الديناميكي حسب اللغة
+  const textAlign     = lang === "en" ? "left"  : "right";
+  const writingDir    = lang === "en" ? "ltr"   : "rtl";
+  const rowJustify    = lang === "en" ? "flex-start" : "flex-end";
 
   useEffect(() => {
     const persistResult = async () => {
       await saveResult({
         subjectId: params.subjectId ?? "",
         chapterId: params.chapterId ?? "",
-        topicId: params.topicId ?? "",
-        mode: params.mode ?? "paper",
-        correct: correctCount,
-        wrong: wrongCount,
-        skipped: skippedCount,
+        topicId:   params.topicId   ?? "",
+        mode:      params.mode      ?? "paper",
+        correct:   correctCount,
+        wrong:     wrongCount,
+        skipped:   skippedCount,
         total,
         percentage,
       });
@@ -118,22 +141,13 @@ export default function ResultScreen() {
       if (!isCompletion) return;
 
       if (scope === "topic") {
-        await markTopicCompletion(
-          params.subjectId ?? "",
-          params.chapterId ?? "",
-          params.topicId ?? ""
-        );
+        await markTopicCompletion(params.subjectId ?? "", params.chapterId ?? "", params.topicId ?? "");
         return;
       }
-
       if (scope === "chapter") {
-        await markChapterCompletion(
-          params.subjectId ?? "",
-          params.chapterId ?? ""
-        );
+        await markChapterCompletion(params.subjectId ?? "", params.chapterId ?? "");
         return;
       }
-
       if (scope === "subject") {
         await markSubjectCompletion(params.subjectId ?? "");
       }
@@ -141,7 +155,6 @@ export default function ResultScreen() {
 
     persistResult();
   }, []);
-
 
 
   return (
@@ -176,22 +189,36 @@ export default function ResultScreen() {
         </View>
       </View>
 
-      {/* زر المراجعة */}
-      <TouchableOpacity style={s.reviewBtn} onPress={() => setShowReview(v => !v)}>
-        <Text style={s.reviewBtnText}>
-          {showReview ? "▲ إخفاء المراجعة" : "📋 مراجعة الإجابات"}
-        </Text>
-      </TouchableOpacity>
+      {/* زر المراجعة + زر اللغة في نفس الصف */}
+      <View style={s.reviewRow}>
+        <TouchableOpacity style={s.langToggle} onPress={() => setLang(l => l === "ar" ? "en" : "ar")}>
+          <Text style={s.langToggleText}>{lang === "ar" ? "EN" : "AR"}</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={s.reviewBtn} onPress={() => setShowReview(v => !v)}>
+          <Text style={s.reviewBtnText}>
+            {showReview ? "▲ إخفاء المراجعة" : "📋 مراجعة الإجابات"}
+          </Text>
+        </TouchableOpacity>
+      </View>
 
       {/* قائمة المراجعة */}
       {showReview && (
         <View style={s.reviewList}>
           {questions.map((q, i) => {
             const chosenText  = answers[q.id];
-            function getQuestionExplanation(question: any): string {return question.explanation ?? question.explanation_en ?? "";}
-            const correctText = getQuestionOptions(q)[q.answer];
-            const isSkipped   = chosenText === undefined || chosenText === null || chosenText === "";
-            const isCorrect   = !isSkipped && chosenText === correctText;
+            // الصواب/خطأ يُحسب دائماً على النص العربي الأصلي
+            const correctText = getQuestionOptions(q, "ar")[q.answer];
+            // النص المعروض للإجابة الصحيحة حسب اللغة
+            const correctDisplayText = getQuestionOptions(q, lang)[q.answer];
+            // تحويل الإجابة المخزونة (ar) إلى النص المعروض (lang)
+            const chosenIndex = getQuestionOptions(q, "ar").indexOf(chosenText);
+            const chosenDisplayText = chosenIndex !== -1
+              ? getQuestionOptions(q, lang)[chosenIndex]
+              : chosenText;
+
+            const isSkipped = chosenText === undefined || chosenText === null || chosenText === "";
+            const isCorrect = !isSkipped && chosenText === correctText;
 
             return (
               <View
@@ -202,17 +229,27 @@ export default function ResultScreen() {
                 ]}
               >
                 <Text style={s.reviewNum}>س{i + 1}</Text>
-                <Text style={s.reviewQuestion}>{getQuestionText(q)}</Text>
 
-                <View style={s.reviewAnswer}>
+                {/* نص السؤال — اتجاه ديناميكي */}
+                <Text style={[s.reviewQuestion, { textAlign, writingDirection: writingDir }]}>
+                  {getQuestionText(q, lang)}
+                </Text>
+
+                {/* الإجابة الصحيحة — اتجاه ديناميكي */}
+                <View style={[s.reviewAnswer, { justifyContent: rowJustify }]}>
                   <Text style={s.reviewAnswerLabel}>✅ الصحيحة: </Text>
-                  <Text style={s.reviewAnswerText}>{correctText}</Text>
+                  <Text style={[s.reviewAnswerText, { textAlign, writingDirection: writingDir }]}>
+                    {correctDisplayText}
+                  </Text>
                 </View>
 
+                {/* إجابة المستخدم الخاطئة — اتجاه ديناميكي */}
                 {!isCorrect && !isSkipped && (
-                  <View style={s.reviewAnswer}>
+                  <View style={[s.reviewAnswer, { justifyContent: rowJustify }]}>
                     <Text style={s.reviewWrongLabel}>❌ إجابتك: </Text>
-                    <Text style={s.reviewAnswerText}>{chosenText}</Text>
+                    <Text style={[s.reviewAnswerText, { textAlign, writingDirection: writingDir }]}>
+                      {chosenDisplayText}
+                    </Text>
                   </View>
                 )}
 
@@ -220,18 +257,21 @@ export default function ResultScreen() {
                   <Text style={s.skippedLabel}>⚪ لم تجب على هذا السؤال</Text>
                 )}
 
-                {getQuestionExplanation(q) !== "" && (
-  <>
-    <TouchableOpacity onPress={() => toggleExp(q.id)} style={s.expToggle}>
-      <Text style={s.expToggleText}>
-        {expandedExp[q.id] ? "▲ إخفاء الشرح" : "💡 إظهار الشرح"}
-      </Text>
-    </TouchableOpacity>
-    {expandedExp[q.id] && (
-      <Text style={s.expText}>{getQuestionExplanation(q)}</Text>
-    )}
-  </>
-)}
+                {/* زر الشرح — اتجاه ديناميكي */}
+                {getQuestionExplanation(q, lang) !== "" && (
+                  <>
+                    <TouchableOpacity onPress={() => toggleExp(q.id)} style={s.expToggle}>
+                      <Text style={s.expToggleText}>
+                        {expandedExp[q.id] ? "▲ إخفاء الشرح" : "💡 إظهار الشرح"}
+                      </Text>
+                    </TouchableOpacity>
+                    {expandedExp[q.id] && (
+                      <Text style={[s.expText, { textAlign, writingDirection: writingDir }]}>
+                        {getQuestionExplanation(q, lang)}
+                      </Text>
+                    )}
+                  </>
+                )}
               </View>
             );
           })}
@@ -250,6 +290,7 @@ export default function ResultScreen() {
   );
 }
 
+
 const s = StyleSheet.create({
   container:         { flex: 1, backgroundColor: Colors.background },
   content:           { padding: 16, paddingBottom: 60 },
@@ -262,25 +303,33 @@ const s = StyleSheet.create({
   statNum:           { fontSize: 24, fontWeight: "bold" },
   statLabel:         { color: Colors.textMuted, fontSize: 12, marginTop: 2 },
   statDivider:       { width: 1, height: 40, backgroundColor: Colors.border },
-  reviewBtn:         { backgroundColor: Colors.surface, borderRadius: 12, padding: 14, alignItems: "center", borderWidth: 1, borderColor: Colors.border, marginBottom: 12 },
+
+  // صف المراجعة + اللغة
+  reviewRow:         { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 12 },
+  reviewBtn:         { flex: 1, backgroundColor: Colors.surface, borderRadius: 12, padding: 14, alignItems: "center", borderWidth: 1, borderColor: Colors.border },
   reviewBtnText:     { color: Colors.text, fontWeight: "bold", fontSize: 15 },
+  langToggle:        { width: 52, height: 48, borderRadius: 12, backgroundColor: Colors.card, justifyContent: "center", alignItems: "center", borderWidth: 1, borderColor: Colors.border },
+  langToggleText:    { color: Colors.primary, fontWeight: "700", fontSize: 14 },
+
   reviewList:        { gap: 10, marginBottom: 16 },
   reviewCard:        { backgroundColor: Colors.card, borderRadius: 12, padding: 14, borderWidth: 1, borderLeftWidth: 4 },
-  reviewCorrect:     { borderColor: Colors.correct,   borderLeftColor: Colors.correct },
-  reviewWrong:       { borderColor: Colors.wrong,     borderLeftColor: Colors.wrong },
-  reviewSkipped:     { borderColor: Colors.border,    borderLeftColor: Colors.textMuted },
+  reviewCorrect:     { borderColor: Colors.correct,  borderLeftColor: Colors.correct },
+  reviewWrong:       { borderColor: Colors.wrong,    borderLeftColor: Colors.wrong },
+  reviewSkipped:     { borderColor: Colors.border,   borderLeftColor: Colors.textMuted },
   reviewNum:         { color: Colors.textMuted, fontSize: 12, marginBottom: 4 },
-  reviewQuestion:    { color: Colors.text, fontSize: 14, textAlign: "right", marginBottom: 8, lineHeight: 20 },
-  reviewAnswer:      { flexDirection: "row", justifyContent: "flex-end", flexWrap: "wrap", marginTop: 4 },
+  reviewQuestion:    { color: Colors.text, fontSize: 14, marginBottom: 8, lineHeight: 22 },
+  reviewAnswer:      { flexDirection: "row", flexWrap: "wrap", marginTop: 4 },
   reviewAnswerLabel: { color: Colors.correct, fontSize: 13, fontWeight: "bold" },
   reviewWrongLabel:  { color: Colors.wrong,   fontSize: 13, fontWeight: "bold" },
-  reviewAnswerText:  { color: Colors.text,    fontSize: 13, flex: 1, textAlign: "right" },
+  reviewAnswerText:  { color: Colors.text,    fontSize: 13, flex: 1 },
   skippedLabel:      { color: Colors.textMuted, fontSize: 13, textAlign: "right", marginTop: 4 },
+
+  expToggle:         { marginTop: 10, alignSelf: "flex-end" },
+  expToggleText:     { color: Colors.primary, fontSize: 13, fontWeight: "600" },
+  expText:           { color: Colors.textMuted, fontSize: 13, marginTop: 6, lineHeight: 22 },
+
   retryBtn:          { backgroundColor: Colors.primary, borderRadius: 12, padding: 16, alignItems: "center", marginBottom: 10 },
   retryBtnText:      { color: "#fff", fontWeight: "bold", fontSize: 16 },
-    expToggle:     { marginTop: 10, alignSelf: "flex-end" },
-  expToggleText: { color: Colors.primary, fontSize: 13, fontWeight: "600" },
-  expText:       { color: Colors.textMuted, fontSize: 13, textAlign: "right", marginTop: 6, lineHeight: 20 },
   homeBtn:           { backgroundColor: Colors.surface, borderRadius: 12, padding: 16, alignItems: "center", borderWidth: 1, borderColor: Colors.border },
   homeBtnText:       { color: Colors.textMuted, fontWeight: "bold", fontSize: 16 },
 });
