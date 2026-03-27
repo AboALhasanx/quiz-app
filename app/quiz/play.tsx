@@ -2,11 +2,32 @@ import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Pressable, Activi
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Colors } from "../../constants/colors";
-import ds501 from "../../data/subjects/ds501.json";
+import index from "../../data/subjects/index.json";
+import aiData from "../../data/subjects/ai_data.json";
+import cnData from "../../data/subjects/cn_data.json";
+import dsData from "../../data/subjects/ds_data.json";
+import oopData from "../../data/subjects/oop_data.json";
+import osData from "../../data/subjects/os_data.json";
+import seData from "../../data/subjects/se_data.json";
 import { saveBookmark, removeBookmark, isBookmarked, saveSession, getSession, clearSession } from "../../utils/storage";
 import { Ionicons } from "@expo/vector-icons";
 
-const SUBJECTS: Record<string, typeof ds501> = { ds501 };
+type Subject = any;
+
+const SUBJECT_DATA_BY_FILE: Record<string, Subject> = {
+  "ai_data.json": aiData,
+  "cn_data.json": cnData,
+  "ds_data.json": dsData,
+  "oop_data.json": oopData,
+  "os_data.json": osData,
+  "se_data.json": seData,
+};
+
+const SUBJECTS = index.subjects.reduce<Record<string, Subject>>((acc, subject) => {
+  const data = SUBJECT_DATA_BY_FILE[subject.file];
+  if (data) acc[subject.id] = data;
+  return acc;
+}, {});
 
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
@@ -17,9 +38,17 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
+function getQuestionText(question: any) {
+  return question.text ?? question.text_en ?? "";
+}
+
+function getQuestionOptions(question: any): string[] {
+  return question.options ?? question.options_en ?? [];
+}
+
 function shuffleOptions(question: any) {
-  const correctText = question.options[question.answer];
-  const options = [...question.options];
+  const correctText = getQuestionOptions(question)[question.answer];
+  const options = [...getQuestionOptions(question)];
   for (let i = options.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [options[i], options[j]] = [options[j], options[i]];
@@ -30,7 +59,7 @@ function shuffleOptions(question: any) {
 export default function QuizPlayScreen() {
   const params = useLocalSearchParams<{
     subjectId: string; chapterId: string; topicId: string;
-    mode: string; filter: string; order: string; hardMode: string;
+    mode: string; order: string; hardMode: string;
   }>();
   const router = useRouter();
 
@@ -55,13 +84,13 @@ export default function QuizPlayScreen() {
     if (!subject) return;
     let qs: any[] = [];
     const chapters = params.chapterId
-      ? subject.chapters.filter(c => c.id === params.chapterId)
+      ? subject.chapters.filter((c: any) => c.id === params.chapterId)
       : subject.chapters;
-    chapters.forEach(ch => {
+    chapters.forEach((ch: any) => {
       const topics = params.topicId
-        ? ch.topics.filter(t => t.id === params.topicId)
+        ? ch.topics.filter((t: any) => t.id === params.topicId)
         : ch.topics;
-      topics.forEach(t => qs.push(...t.questions));
+      topics.forEach((t: any) => qs.push(...t.questions));
     });
     qs = qs.map(q => shuffleOptions(q));
     const final = order === "random" ? shuffle(qs) : qs;
@@ -95,8 +124,8 @@ export default function QuizPlayScreen() {
               onPress: () => {
                 const subject = SUBJECTS[params.subjectId];
                 let allQs: any[] = [];
-                subject?.chapters.forEach(ch =>
-                  ch.topics.forEach(t => allQs.push(...t.questions))
+                subject?.chapters.forEach((ch: any) =>
+                  ch.topics.forEach((t: any) => allQs.push(...t.questions))
                 );
                 const qs = session.questionIds
                   .map((id: string) => allQs.find(q => q.id === id))
@@ -291,7 +320,7 @@ export default function QuizPlayScreen() {
           </Text>
         </TouchableOpacity>
 
-        <Text style={s.questionText}>{q.text}</Text>
+        <Text style={s.questionText}>{getQuestionText(q)}</Text>
 
         {q.options.map((opt: string, i: number) => (
           <Pressable key={i} style={getOptionStyle(i)} onPress={() => handleAnswer(i)}>

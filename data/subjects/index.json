@@ -1,12 +1,35 @@
 {
   "subjects": [
     {
-      "id": "ds501",
+      "id": "ds_data",
       "title": "هياكل البيانات والخوارزميات",
-      "code": "DS501",
-      "chaptersCount": 8,
-      "questionsCount": 474,
-      "file": "ds501.json"
+      "file": "ds_data.json"
+    },
+    {
+      "id": "os_data",
+      "title": "أنظمة التشغيل",
+      "file": "os_data.json"
+    },
+    {
+      "id": "ai_data",
+      "title": "الذكاء الاصطناعي",
+      "file": "ai_data.json"
+    },
+    {
+      "id": "cn_data",
+      "title": "شبكات الحاسوب",
+      "file": "cn_data.json"
+    },
+    {
+      "id": "oop_data",
+      "title": "البرمجة الكائنية التوجه",
+      "file": "oop_data.json"
+    },
+    {
+      "id": "se_data",
+      "title": "هندسة البرمجيات",
+      "file": "se_data.json"
     }
+    
   ]
 }

@@ -2,17 +2,38 @@ import { useState, useCallback } from "react";
 import { View, Text, FlatList, TouchableOpacity, StyleSheet } from "react-native";
 import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
 import { Colors } from "../../constants/colors";
-import ds501 from "../../data/subjects/ds501.json";
+import index from "../../data/subjects/index.json";
+import aiData from "../../data/subjects/ai_data.json";
+import cnData from "../../data/subjects/cn_data.json";
+import dsData from "../../data/subjects/ds_data.json";
+import oopData from "../../data/subjects/oop_data.json";
+import osData from "../../data/subjects/os_data.json";
+import seData from "../../data/subjects/se_data.json";
 import { getResults } from "../../utils/storage";
 import { Ionicons } from "@expo/vector-icons";
 
-const SUBJECTS: Record<string, typeof ds501> = { ds501 };
+type Subject = any;
+
+const SUBJECT_DATA_BY_FILE: Record<string, Subject> = {
+  "ai_data.json": aiData,
+  "cn_data.json": cnData,
+  "ds_data.json": dsData,
+  "oop_data.json": oopData,
+  "os_data.json": osData,
+  "se_data.json": seData,
+};
+
+const SUBJECTS = index.subjects.reduce<Record<string, Subject>>((acc, subject) => {
+  const data = SUBJECT_DATA_BY_FILE[subject.file];
+  if (data) acc[subject.id] = data;
+  return acc;
+}, {});
 
 export default function ChapterScreen() {
   const { id, subjectId } = useLocalSearchParams<{ id: string; subjectId: string }>();
   const router  = useRouter();
   const subject = SUBJECTS[subjectId];
-  const chapter = subject?.chapters.find(c => c.id === id);
+  const chapter = subject?.chapters.find((c: any) => c.id === id);
 
   const [topicStats, setTopicStats] = useState<Record<string, number>>({});
   const [chapterScore, setChapterScore] = useState<number | undefined>();
@@ -40,7 +61,7 @@ export default function ChapterScreen() {
     );
   }
 
-  const totalQ = chapter.topics.reduce((sum, t) => sum + t.questions.length, 0);
+  const totalQ = chapter.topics.reduce((sum: number, t: any) => sum + t.questions.length, 0);
 
   const getScoreColor = (p: number) =>
     p >= 70 ? Colors.correct : p >= 50 ? Colors.primary : Colors.wrong;

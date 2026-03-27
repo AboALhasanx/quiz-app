@@ -3,14 +3,43 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } 
 import { useFocusEffect } from "expo-router";
 import { Colors } from "../../constants/colors";
 import { getBookmarks, removeBookmark, clearBookmarks, Bookmark } from "../../utils/storage";
-import ds501 from "../../data/subjects/ds501.json";
+import index from "../../data/subjects/index.json";
+import aiData from "../../data/subjects/ai_data.json";
+import cnData from "../../data/subjects/cn_data.json";
+import dsData from "../../data/subjects/ds_data.json";
+import oopData from "../../data/subjects/oop_data.json";
+import osData from "../../data/subjects/os_data.json";
+import seData from "../../data/subjects/se_data.json";
 import { 
   fetchBookmarksFromFirestore, 
   deleteBookmarkFromFirestore 
 } from "../../utils/firebase";
 
 
-const SUBJECTS: Record<string, typeof ds501> = { ds501 };
+type Subject = any;
+
+const SUBJECT_DATA_BY_FILE: Record<string, Subject> = {
+  "ai_data.json": aiData,
+  "cn_data.json": cnData,
+  "ds_data.json": dsData,
+  "oop_data.json": oopData,
+  "os_data.json": osData,
+  "se_data.json": seData,
+};
+
+const SUBJECTS = index.subjects.reduce<Record<string, Subject>>((acc, subject) => {
+  const data = SUBJECT_DATA_BY_FILE[subject.file];
+  if (data) acc[subject.id] = data;
+  return acc;
+}, {});
+
+function getQuestionText(question: any) {
+  return question.text ?? question.text_en ?? "";
+}
+
+function getQuestionOptions(question: any): string[] {
+  return question.options ?? question.options_en ?? [];
+}
 
 function findQuestion(subjectId: string, questionId: string) {
   const subject = SUBJECTS[subjectId];
@@ -91,11 +120,11 @@ const handleClearAll = async () => {
                   </TouchableOpacity>
                 </View>
 
-                <Text style={s.questionText}>{q.text}</Text>
+                <Text style={s.questionText}>{getQuestionText(q)}</Text>
 
                 <View style={s.divider} />
 
-                {q.options.map((opt: string, idx: number) => (
+                {getQuestionOptions(q).map((opt: string, idx: number) => (
                   <View
                     key={idx}
                     style={[s.option, idx === q.answer && s.correctOption]}

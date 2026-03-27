@@ -2,12 +2,40 @@ import { useState, useEffect } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Colors } from "../../constants/colors";
-import ds501 from "../../data/subjects/ds501.json";
+import index from "../../data/subjects/index.json";
+import aiData from "../../data/subjects/ai_data.json";
+import cnData from "../../data/subjects/cn_data.json";
+import dsData from "../../data/subjects/ds_data.json";
+import oopData from "../../data/subjects/oop_data.json";
+import osData from "../../data/subjects/os_data.json";
+import seData from "../../data/subjects/se_data.json";
 import { saveResult } from "../../utils/storage";
-import { syncResultToFirestore } from "../../utils/firebase";
 
 
-const SUBJECTS: Record<string, typeof ds501> = { ds501 };
+type Subject = any;
+
+const SUBJECT_DATA_BY_FILE: Record<string, Subject> = {
+  "ai_data.json": aiData,
+  "cn_data.json": cnData,
+  "ds_data.json": dsData,
+  "oop_data.json": oopData,
+  "os_data.json": osData,
+  "se_data.json": seData,
+};
+
+const SUBJECTS = index.subjects.reduce<Record<string, Subject>>((acc, subject) => {
+  const data = SUBJECT_DATA_BY_FILE[subject.file];
+  if (data) acc[subject.id] = data;
+  return acc;
+}, {});
+
+function getQuestionText(question: any) {
+  return question.text ?? question.text_en ?? "";
+}
+
+function getQuestionOptions(question: any): string[] {
+  return question.options ?? question.options_en ?? [];
+}
 
 export default function ResultScreen() {
   const params = useLocalSearchParams<{
@@ -23,13 +51,13 @@ export default function ResultScreen() {
   let allQuestions: any[] = [];
   if (subject) {
     const chapters = params.chapterId
-      ? subject.chapters.filter(c => c.id === params.chapterId)
+      ? subject.chapters.filter((c: any) => c.id === params.chapterId)
       : subject.chapters;
-    chapters.forEach(ch => {
+    chapters.forEach((ch: any) => {
       const topics = params.topicId
-        ? ch.topics.filter(t => t.id === params.topicId)
+        ? ch.topics.filter((t: any) => t.id === params.topicId)
         : ch.topics;
-      topics.forEach(t => allQuestions.push(...t.questions));
+      topics.forEach((t: any) => allQuestions.push(...t.questions));
     });
   }
 
@@ -40,7 +68,7 @@ export default function ResultScreen() {
   let correctCount = 0, wrongCount = 0, skippedCount = 0;
   questions.forEach(q => {
     const ans         = answers[q.id];
-    const correctText = q.options[q.answer];
+    const correctText = getQuestionOptions(q)[q.answer];
     if (ans === undefined || ans === null || ans === "") skippedCount++;
     else if (ans === correctText) correctCount++;
     else wrongCount++;
@@ -80,7 +108,6 @@ useEffect(() => {
   };
 
   saveResult(result);
-  syncResultToFirestore(result);
 }, []);
 
 
@@ -129,7 +156,7 @@ useEffect(() => {
         <View style={s.reviewList}>
           {questions.map((q, i) => {
             const chosenText  = answers[q.id];
-            const correctText = q.options[q.answer];
+            const correctText = getQuestionOptions(q)[q.answer];
             const isSkipped   = chosenText === undefined || chosenText === null || chosenText === "";
             const isCorrect   = !isSkipped && chosenText === correctText;
 
@@ -142,7 +169,7 @@ useEffect(() => {
                 ]}
               >
                 <Text style={s.reviewNum}>س{i + 1}</Text>
-                <Text style={s.reviewQuestion}>{q.text}</Text>
+                <Text style={s.reviewQuestion}>{getQuestionText(q)}</Text>
 
                 <View style={s.reviewAnswer}>
                   <Text style={s.reviewAnswerLabel}>✅ الصحيحة: </Text>
