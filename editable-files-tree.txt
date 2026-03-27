@@ -1,0 +1,67 @@
+README.md
+app/
+  _layout.tsx
+  modal.tsx
+  login.tsx
+  (tabs)/
+    _layout.tsx
+    index.tsx
+    bookmarks.tsx
+    stats.tsx
+  subject/
+    [id].tsx
+  chapter/
+    [id].tsx
+  quiz/
+    setup.tsx
+    play.tsx
+    result.tsx
+assets/
+  icon.png
+  images/
+    favicon.png
+    android-icon-monochrome.png
+    android-icon-foreground.png
+    android-icon-background.png
+    react-logo.png
+    partial-react-logo.png
+    icon.png
+    react-logo@3x.png
+    react-logo@2x.png
+    splash-icon.png
+    subjects/
+      se.png
+      os.png
+      oop.png
+      ds.png
+      cn.png
+      ai.png
+components/
+  external-link.tsx
+  haptic-tab.tsx
+  hello-wave.tsx
+  parallax-scroll-view.tsx
+  themed-text.tsx
+  themed-view.tsx
+  ui/
+    collapsible.tsx
+    icon-symbol.tsx
+    icon-symbol.ios.tsx
+constants/
+  colors.ts
+  theme.ts
+data/
+  subjects/
+    index.json
+    ds501.json
+hooks/
+  use-color-scheme.ts
+  use-color-scheme.web.ts
+  use-theme-color.ts
+scripts/
+  reset-project.js
+utils/
+  firebase.ts
+  storage.ts
+
+(Excluded config and settings files: package.json, package-lock.json, tsconfig.json, app.json, google-services.json, eslint.config.js, .vscode/, .gitignore)
