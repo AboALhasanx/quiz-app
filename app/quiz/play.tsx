@@ -63,7 +63,7 @@ function getSelectedQuestionCount(total: number, percentage: number) {
 
 export default function QuizPlayScreen() {
   const params = useLocalSearchParams<{
-    subjectId: string; chapterId: string; topicId: string;
+    scope?: string; subjectId: string; chapterId: string; topicId: string;
     mode: string; order: string; hardMode: string; percentage?: string;
   }>();
   const router = useRouter();
@@ -196,10 +196,12 @@ export default function QuizPlayScreen() {
     clearInterval(timerRef.current!);
     clearSession(); // ✅ امسح الجلسة
     const p = new URLSearchParams({
+      scope: params.scope ?? "",
       subjectId: params.subjectId ?? "",
       chapterId: params.chapterId ?? "",
       topicId: params.topicId ?? "",
       mode,
+      percentage: percentage.toString(),
       answers: JSON.stringify(answersRef.current),
       questionIds: JSON.stringify(questionsRef.current.map(q => q.id)),
     });

@@ -25,6 +25,11 @@ export type Bookmark = {
   savedAt:    string;
 };
 
+export type CompletionEntry = {
+  completed: true;
+  completedAt: string;
+};
+
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Keys
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -32,6 +37,9 @@ export type Bookmark = {
 const KEYS = {
   results:   "quiz_results",
   bookmarks: "quiz_bookmarks",
+  topicCompletions:   "topicCompletions",
+  chapterCompletions: "chapterCompletions",
+  subjectCompletions: "subjectCompletions",
 };
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -140,6 +148,99 @@ export async function clearBookmarks(): Promise<void> {
   } catch (e) {
     console.error("clearBookmarks error:", e);
   }
+}
+
+function getTopicCompletionStorageKey(subjectId: string, chapterId: string, topicId: string) {
+  return `${subjectId}:${chapterId}:${topicId}`;
+}
+
+function getChapterCompletionStorageKey(subjectId: string, chapterId: string) {
+  return `${subjectId}:${chapterId}`;
+}
+
+function getSubjectCompletionStorageKey(subjectId: string) {
+  return subjectId;
+}
+
+async function getCompletionMap(
+  storageKey: string
+): Promise<Record<string, CompletionEntry>> {
+  try {
+    const raw = await AsyncStorage.getItem(storageKey);
+    return raw ? JSON.parse(raw) : {};
+  } catch (e) {
+    console.error("getCompletionMap error:", e);
+    return {};
+  }
+}
+
+async function saveCompletionMap(
+  storageKey: string,
+  value: Record<string, CompletionEntry>
+): Promise<void> {
+  try {
+    await AsyncStorage.setItem(storageKey, JSON.stringify(value));
+  } catch (e) {
+    console.error("saveCompletionMap error:", e);
+  }
+}
+
+async function markCompletion(storageKey: string, key: string): Promise<void> {
+  const completions = await getCompletionMap(storageKey);
+  if (completions[key]?.completed) return;
+
+  completions[key] = {
+    completed: true,
+    completedAt: new Date().toISOString(),
+  };
+
+  await saveCompletionMap(storageKey, completions);
+}
+
+export async function getTopicCompletions(): Promise<Record<string, CompletionEntry>> {
+  return getCompletionMap(KEYS.topicCompletions);
+}
+
+export async function getChapterCompletions(): Promise<Record<string, CompletionEntry>> {
+  return getCompletionMap(KEYS.chapterCompletions);
+}
+
+export async function getSubjectCompletions(): Promise<Record<string, CompletionEntry>> {
+  return getCompletionMap(KEYS.subjectCompletions);
+}
+
+export async function markTopicCompletion(
+  subjectId: string,
+  chapterId: string,
+  topicId: string
+): Promise<void> {
+  if (!subjectId || !chapterId || !topicId) return;
+  await markCompletion(KEYS.topicCompletions, getTopicCompletionStorageKey(subjectId, chapterId, topicId));
+}
+
+export async function markChapterCompletion(
+  subjectId: string,
+  chapterId: string
+): Promise<void> {
+  if (!subjectId || !chapterId) return;
+  await markCompletion(KEYS.chapterCompletions, getChapterCompletionStorageKey(subjectId, chapterId));
+}
+
+export async function markSubjectCompletion(subjectId: string): Promise<void> {
+  if (!subjectId) return;
+  await markCompletion(KEYS.subjectCompletions, getSubjectCompletionStorageKey(subjectId));
+}
+
+export function buildTopicCompletionKey(subjectId: string, chapterId: string, topicId: string) {
+  return getTopicCompletionStorageKey(subjectId, chapterId, topicId);
+}
+
+export function buildChapterCompletionKey(subjectId: string, chapterId: string) {
+  return getChapterCompletionStorageKey(subjectId, chapterId);
+}
+
+export function buildSubjectCompletionKey(subjectId: string) {
+  return getSubjectCompletionStorageKey(subjectId);
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

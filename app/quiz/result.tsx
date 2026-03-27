@@ -9,7 +9,7 @@ import dsData from "../../data/subjects/ds_data.json";
 import oopData from "../../data/subjects/oop_data.json";
 import osData from "../../data/subjects/os_data.json";
 import seData from "../../data/subjects/se_data.json";
-import { saveResult } from "../../utils/storage";
+import { saveResult, markTopicCompletion, markChapterCompletion, markSubjectCompletion } from "../../utils/storage";
 
 
 type Subject = any;
@@ -40,7 +40,7 @@ function getQuestionOptions(question: any): string[] {
 export default function ResultScreen() {
   const params = useLocalSearchParams<{
     subjectId: string; chapterId: string; topicId: string;
-    mode: string; answers: string; questionIds: string;
+    mode: string; answers: string; questionIds: string; scope?: string; percentage?: string;
   }>();
   const router = useRouter();
 
@@ -76,6 +76,10 @@ export default function ResultScreen() {
 
   const total      = questions.length;
   const percentage = total > 0 ? Math.round((correctCount / total) * 100) : 0;
+  const selectedPercentage = Number(params.percentage ?? "100");
+  const scope =
+    params.scope ??
+    (params.topicId ? "topic" : params.chapterId ? "chapter" : "subject");
 
   const emoji =
     percentage >= 90 ? "🏆" :
@@ -89,26 +93,51 @@ export default function ResultScreen() {
 
   const [showReview, setShowReview] = useState(false);
 
-useEffect(() => {
-  const id   = Date.now().toString();
-  const date = new Date().toISOString();
+  useEffect(() => {
+    const persistResult = async () => {
+      await saveResult({
+        subjectId: params.subjectId ?? "",
+        chapterId: params.chapterId ?? "",
+        topicId: params.topicId ?? "",
+        mode: params.mode ?? "paper",
+        correct: correctCount,
+        wrong: wrongCount,
+        skipped: skippedCount,
+        total,
+        percentage,
+      });
 
-  const result = {
-    id,
-    date,
-    subjectId:  params.subjectId ?? "",
-    chapterId:  params.chapterId ?? "",
-    topicId:    params.topicId   ?? "",
-    mode:       params.mode      ?? "paper",
-    correct:    correctCount,
-    wrong:      wrongCount,
-    skipped:    skippedCount,
-    total,
-    percentage,
-  };
+      const isCompletion =
+        selectedPercentage === 100 &&
+        total > 0 &&
+        correctCount === total;
 
-  saveResult(result);
-}, []);
+      if (!isCompletion) return;
+
+      if (scope === "topic") {
+        await markTopicCompletion(
+          params.subjectId ?? "",
+          params.chapterId ?? "",
+          params.topicId ?? ""
+        );
+        return;
+      }
+
+      if (scope === "chapter") {
+        await markChapterCompletion(
+          params.subjectId ?? "",
+          params.chapterId ?? ""
+        );
+        return;
+      }
+
+      if (scope === "subject") {
+        await markSubjectCompletion(params.subjectId ?? "");
+      }
+    };
+
+    persistResult();
+  }, []);
 
 
 
