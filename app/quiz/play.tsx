@@ -61,6 +61,10 @@ function getSelectedQuestionCount(total: number, percentage: number) {
   return Math.min(total, Math.max(1, Math.floor((total * percentage) / 100)));
 }
 
+function getQuestionExplanation(question: any): string {
+  return question.explanation ?? question.explanation_en ?? "";
+}
+
 export default function QuizPlayScreen() {
   const params = useLocalSearchParams<{
     scope?: string; subjectId: string; chapterId: string; topicId: string;
@@ -352,14 +356,27 @@ export default function QuizPlayScreen() {
 
         {mode === "recitation" && revealed && (
           <View style={s.feedbackBox}>
+
             <Text style={[s.feedbackText, chosenText === q.correctText ? s.correct : s.wrong]}>
               {chosenText === q.correctText ? "✅ إجابة صحيحة!" : "❌ إجابة خاطئة"}
             </Text>
+
+            {/* 👇 هذا تضيفه هنا */}
+            {getQuestionExplanation(q) !== "" && (
+              <View style={s.explanationBox}>
+                <Text style={s.explanationLabel}>💡 الشرح</Text>
+                <Text style={s.explanationText}>
+                  {getQuestionExplanation(q)}
+                </Text>
+              </View>
+            )}
+
             <TouchableOpacity style={s.nextBtn} onPress={nextQuestion}>
               <Text style={s.nextBtnText}>
                 {current + 1 >= questions.length ? "🏁 إنهاء" : "التالي ←"}
               </Text>
             </TouchableOpacity>
+
           </View>
         )}
 
@@ -403,6 +420,27 @@ const s = StyleSheet.create({
   feedbackText: { fontSize: 16, fontWeight: "bold" },
   correct: { color: Colors.correct },
   wrong: { color: Colors.wrong },
+  explanationBox: {
+    width: "100%",
+    backgroundColor: Colors.card,
+    borderRadius: 10,
+    padding: 12,
+    borderRightWidth: 4,
+    borderRightColor: Colors.primary,
+  },
+  explanationLabel: {
+    color: Colors.primary,
+    fontWeight: "700",
+    fontSize: 13,
+    marginBottom: 6,
+    textAlign: "right",
+  },
+  explanationText: {
+    color: Colors.text,
+    fontSize: 14,
+    lineHeight: 22,
+    textAlign: "right",
+  },
   nextBtn: { backgroundColor: Colors.primary, borderRadius: 12, padding: 16, alignItems: "center", marginTop: 16 },
   nextBtnText: { color: "#fff", fontWeight: "bold", fontSize: 16 },
 });

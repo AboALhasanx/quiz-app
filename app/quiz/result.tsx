@@ -93,6 +93,9 @@ export default function ResultScreen() {
 
   const [showReview, setShowReview] = useState(false);
 
+  const [expandedExp, setExpandedExp] = useState<Record<string, boolean>>({});
+  const toggleExp = (id: string) => setExpandedExp(prev => ({ ...prev, [id]: !prev[id] }));
+
   useEffect(() => {
     const persistResult = async () => {
       await saveResult({
@@ -185,6 +188,7 @@ export default function ResultScreen() {
         <View style={s.reviewList}>
           {questions.map((q, i) => {
             const chosenText  = answers[q.id];
+            function getQuestionExplanation(question: any): string {return question.explanation ?? question.explanation_en ?? "";}
             const correctText = getQuestionOptions(q)[q.answer];
             const isSkipped   = chosenText === undefined || chosenText === null || chosenText === "";
             const isCorrect   = !isSkipped && chosenText === correctText;
@@ -215,6 +219,19 @@ export default function ResultScreen() {
                 {isSkipped && (
                   <Text style={s.skippedLabel}>⚪ لم تجب على هذا السؤال</Text>
                 )}
+
+                {getQuestionExplanation(q) !== "" && (
+  <>
+    <TouchableOpacity onPress={() => toggleExp(q.id)} style={s.expToggle}>
+      <Text style={s.expToggleText}>
+        {expandedExp[q.id] ? "▲ إخفاء الشرح" : "💡 إظهار الشرح"}
+      </Text>
+    </TouchableOpacity>
+    {expandedExp[q.id] && (
+      <Text style={s.expText}>{getQuestionExplanation(q)}</Text>
+    )}
+  </>
+)}
               </View>
             );
           })}
@@ -261,6 +278,9 @@ const s = StyleSheet.create({
   skippedLabel:      { color: Colors.textMuted, fontSize: 13, textAlign: "right", marginTop: 4 },
   retryBtn:          { backgroundColor: Colors.primary, borderRadius: 12, padding: 16, alignItems: "center", marginBottom: 10 },
   retryBtnText:      { color: "#fff", fontWeight: "bold", fontSize: 16 },
+    expToggle:     { marginTop: 10, alignSelf: "flex-end" },
+  expToggleText: { color: Colors.primary, fontSize: 13, fontWeight: "600" },
+  expText:       { color: Colors.textMuted, fontSize: 13, textAlign: "right", marginTop: 6, lineHeight: 20 },
   homeBtn:           { backgroundColor: Colors.surface, borderRadius: 12, padding: 16, alignItems: "center", borderWidth: 1, borderColor: Colors.border },
   homeBtnText:       { color: Colors.textMuted, fontWeight: "bold", fontSize: 16 },
 });
