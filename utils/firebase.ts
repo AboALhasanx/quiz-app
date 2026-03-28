@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { getApps, initializeApp } from "firebase/app";
+import Constants from "expo-constants";
+import { FirebaseOptions, getApps, initializeApp } from "firebase/app";
 import {
   createUserWithEmailAndPassword,
   getAuth,
@@ -34,14 +35,34 @@ const authPersistenceModule = require("firebase/auth") as {
 
 const { getReactNativePersistence } = authPersistenceModule;
 
-const firebaseConfig = {
-  apiKey: "AIzaSyDOSRnQiJcfn78WKxEmzIV-Uz8y2DPRi_8",
-  authDomain: "quiz-d8afd.firebaseapp.com",
-  projectId: "quiz-d8afd",
-  storageBucket: "quiz-d8afd.firebasestorage.app",
-  messagingSenderId: "410999962659",
-  appId: "1:410999962659:android:29722ece78ba44d6210596",
-};
+type FirebaseExtraConfig = FirebaseOptions;
+
+function getFirebaseConfig(): FirebaseExtraConfig {
+  const extra = Constants.expoConfig?.extra?.firebase as Partial<FirebaseExtraConfig> | undefined;
+
+  const firebaseConfig: Partial<FirebaseExtraConfig> = {
+    apiKey: extra?.apiKey,
+    authDomain: extra?.authDomain,
+    projectId: extra?.projectId,
+    storageBucket: extra?.storageBucket,
+    messagingSenderId: extra?.messagingSenderId,
+    appId: extra?.appId,
+  };
+
+  const missingKeys = Object.entries(firebaseConfig)
+    .filter(([, value]) => !value)
+    .map(([key]) => key);
+
+  if (missingKeys.length > 0) {
+    throw new Error(
+      `Missing Firebase config values: ${missingKeys.join(", ")}. Check app.config.js and your .env file.`
+    );
+  }
+
+  return firebaseConfig as FirebaseExtraConfig;
+}
+
+const firebaseConfig = getFirebaseConfig();
 
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 const db = getFirestore(app);
