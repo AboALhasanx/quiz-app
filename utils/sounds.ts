@@ -1,7 +1,7 @@
 // utils/sounds.ts
 import { Audio } from "expo-av";
 
-const SOUND_ENABLED = false; // ← غيّره true وقت تريد الصوت
+const SOUND_ENABLED = true; // ✅
 
 export async function playCorrect() {
   if (!SOUND_ENABLED) return;
