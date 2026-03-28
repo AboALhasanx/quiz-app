@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
-import { removeBookmark, clearBookmarks, Bookmark } from "../../utils/storage";
+import { removeBookmark, clearBookmarks, getBookmarks, mergeBookmarksFromRemote, Bookmark } from "../../utils/storage";
 import index from "../../data/subjects/index.json";
 import aiData from "../../data/subjects/ai_data.json";
 import cnData from "../../data/subjects/cn_data.json";
@@ -9,7 +9,7 @@ import dsData from "../../data/subjects/ds_data.json";
 import oopData from "../../data/subjects/oop_data.json";
 import osData from "../../data/subjects/os_data.json";
 import seData from "../../data/subjects/se_data.json";
-import { fetchBookmarksFromFirestore, deleteBookmarkFromFirestore } from "../../utils/firebase";
+import { fetchBookmarksFromFirestore, deleteBookmarkFromFirestore, flushSyncQueue, getCurrentUser } from "../../utils/firebase";
 import { useTheme } from "../../utils/ThemeContext";
 
 type Subject = any;
@@ -59,8 +59,18 @@ export default function BookmarksScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   const load = async () => {
-    const data = await fetchBookmarksFromFirestore();
-    setBookmarks(data);
+    const localBookmarks = await getBookmarks();
+    setBookmarks(localBookmarks);
+
+    if (!getCurrentUser()) return;
+
+    await flushSyncQueue();
+    const remoteBookmarks = await fetchBookmarksFromFirestore();
+
+    if (remoteBookmarks !== null) {
+      const mergedBookmarks = await mergeBookmarksFromRemote(remoteBookmarks);
+      setBookmarks(mergedBookmarks);
+    }
   };
 
   useFocusEffect(useCallback(() => { load(); }, []));

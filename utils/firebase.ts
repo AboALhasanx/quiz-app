@@ -189,7 +189,7 @@ export async function syncResultToFirestore(result: QuizResult): Promise<void> {
   }
 }
 
-export async function fetchResultsFromFirestore(): Promise<QuizResult[]> {
+export async function fetchResultsFromFirestore(): Promise<QuizResult[] | null> {
   try {
     const uid = await ensureAuth();
     const resultQuery = query(
@@ -200,7 +200,7 @@ export async function fetchResultsFromFirestore(): Promise<QuizResult[]> {
     return snapshot.docs.map((docSnap) => docSnap.data() as QuizResult);
   } catch (error) {
     console.error("fetchResults error:", error);
-    return [];
+    return null;
   }
 }
 
@@ -249,13 +249,13 @@ export async function deleteBookmarkFromFirestore(questionId: string): Promise<v
   }
 }
 
-export async function fetchBookmarksFromFirestore(): Promise<Bookmark[]> {
+export async function fetchBookmarksFromFirestore(): Promise<Bookmark[] | null> {
   try {
     const uid = await ensureAuth();
     const snapshot = await getDocs(collection(db, "users", uid, "bookmarks"));
     return snapshot.docs.map((docSnap) => docSnap.data() as Bookmark);
   } catch (error) {
     console.error("fetchBookmarks error:", error);
-    return [];
+    return null;
   }
 }

@@ -125,6 +125,45 @@ export async function getResults(): Promise<QuizResult[]> {
   return readJson<QuizResult[]>(KEYS.results, []);
 }
 
+function sortResultsDescending(results: QuizResult[]): QuizResult[] {
+  return [...results].sort((first, second) => second.date.localeCompare(first.date));
+}
+
+async function getPendingDeleteIds(type: SyncQueueItem["type"]): Promise<Set<string>> {
+  const queue = await getSyncQueue();
+  const deleteOperations = queue.filter(
+    (item) => item.type === type && item.action === "delete"
+  );
+  const ids =
+    type === "result"
+      ? deleteOperations.map((item) => (item.payload as { id: string }).id)
+      : deleteOperations.map((item) => (item.payload as { questionId: string }).questionId);
+
+  return new Set(ids);
+}
+
+export async function mergeResultsFromRemote(remoteResults: QuizResult[]): Promise<QuizResult[]> {
+  const localResults = await getResults();
+  const pendingDeleted = await getPendingDeleteIds("result");
+  const mergedMap = new Map<string, QuizResult>();
+
+  remoteResults.forEach((result) => {
+    if (!pendingDeleted.has(result.id)) {
+      mergedMap.set(result.id, result);
+    }
+  });
+
+  localResults.forEach((result) => {
+    if (!pendingDeleted.has(result.id)) {
+      mergedMap.set(result.id, result);
+    }
+  });
+
+  const merged = sortResultsDescending(Array.from(mergedMap.values())).slice(0, 200);
+  await writeJson(KEYS.results, merged);
+  return merged;
+}
+
 export async function clearResults(): Promise<void> {
   try {
     await AsyncStorage.removeItem(KEYS.results);
@@ -145,6 +184,22 @@ export async function removeResult(resultId: string): Promise<void> {
 
 export async function getBookmarks(): Promise<Bookmark[]> {
   return readJson<Bookmark[]>(KEYS.bookmarks, []);
+}
+
+export async function mergeBookmarksFromRemote(remoteBookmarks: Bookmark[]): Promise<Bookmark[]> {
+  const localBookmarks = await getBookmarks();
+  const pendingDeleted = await getPendingDeleteIds("bookmark");
+  const merged = [...localBookmarks];
+  const seen = new Set(localBookmarks.map((bookmark) => bookmark.questionId));
+
+  remoteBookmarks.forEach((bookmark) => {
+    if (!seen.has(bookmark.questionId) && !pendingDeleted.has(bookmark.questionId)) {
+      merged.push(bookmark);
+    }
+  });
+
+  await writeJson(KEYS.bookmarks, merged);
+  return merged;
 }
 
 export async function saveBookmark(questionId: string, subjectId: string): Promise<void> {

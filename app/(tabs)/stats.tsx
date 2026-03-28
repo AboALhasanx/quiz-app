@@ -1,9 +1,8 @@
 import { useState, useCallback } from "react";
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Alert } from "react-native";
 import { useFocusEffect, router } from "expo-router";
-import { collection, deleteDoc, getDocs, getFirestore } from "firebase/firestore";
-import { auth, deleteResultFromFirestore, fetchResultsFromFirestore, isSyncQueueFlushing, logoutUser } from "../../utils/firebase";
-import { clearResults, getSyncQueue, removeResult, QuizResult } from "../../utils/storage";
+import { deleteResultFromFirestore, fetchResultsFromFirestore, flushSyncQueue, getCurrentUser, isSyncQueueFlushing, logoutUser } from "../../utils/firebase";
+import { clearResults, getResults, getSyncQueue, mergeResultsFromRemote, removeResult, QuizResult } from "../../utils/storage";
 import { useTheme } from "../../utils/ThemeContext";
 
 type SyncStatus = "ok" | "syncing" | "warning";
@@ -21,10 +20,22 @@ export default function StatsScreen() {
   }, []);
 
   const load = useCallback(async () => {
-    const data = await fetchResultsFromFirestore();
-    setResults(data);
-    await loadSyncStatus();
+    const localResults = await getResults();
+    setResults(localResults);
     setLoading(false);
+    await loadSyncStatus();
+
+    if (!getCurrentUser()) return;
+
+    await flushSyncQueue();
+    const remoteResults = await fetchResultsFromFirestore();
+
+    if (remoteResults !== null) {
+      const mergedResults = await mergeResultsFromRemote(remoteResults);
+      setResults(mergedResults);
+    }
+
+    await loadSyncStatus();
   }, [loadSyncStatus]);
 
   useFocusEffect(
@@ -62,15 +73,9 @@ export default function StatsScreen() {
         text: "مسح",
         style: "destructive",
         onPress: async () => {
+          const currentResults = await getResults();
           await clearResults();
-          const db = getFirestore();
-          const uid = auth.currentUser?.uid;
-
-          if (uid) {
-            const snapshot = await getDocs(collection(db, "users", uid, "results"));
-            await Promise.all(snapshot.docs.map((docSnap) => deleteDoc(docSnap.ref)));
-          }
-
+          await Promise.all(currentResults.map((result) => deleteResultFromFirestore(result.id)));
           setResults([]);
           await loadSyncStatus();
         },
