@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "تنافسي البرمجيات",
-    "slug": "competitive-software",
+    "slug": "quiz-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -29,7 +29,7 @@
         "expo-splash-screen",
         {
           "image": "./assets/images/splash-icon.png",
-          "imageWidth": 200,
+          "imageWidth": 600,
           "resizeMode": "contain",
           "backgroundColor": "#EDDEC7",
           "dark": {
