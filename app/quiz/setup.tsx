@@ -3,7 +3,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import { useTheme } from "../../utils/ThemeContext";
 import { Ionicons } from "@expo/vector-icons";
-import { Language, getScopedQuestions, loadSubjectDataById } from "../../utils/subjects";
+import { getScopedQuestions, loadSubjectDataById } from "../../utils/subjects";
 
 type SessionType = "quiz" | "flashcards";
 
@@ -20,7 +20,6 @@ export default function QuizSetupScreen() {
     chapterId: string;
     topicId: string;
     percentage?: string;
-    lang?: Language;
   }>();
   const router = useRouter();
 
@@ -28,7 +27,6 @@ export default function QuizSetupScreen() {
   const [mode, setMode] = useState<"paper" | "recitation">("paper");
   const [hardMode, setHardMode] = useState(false);
   const [order, setOrder] = useState<"random" | "sequential">("random");
-  const [lang, setLang] = useState<Language>((params.lang ?? "ar") as Language);
   const [percentage, setPercentage] = useState(() => {
     const value = Number(params.percentage ?? "100");
     return Number.isFinite(value) && value >= 10 && value <= 100 ? value : 100;
@@ -42,39 +40,21 @@ export default function QuizSetupScreen() {
 
   const selectedQuestionCount = getSelectedQuestionCount(questions.length, percentage);
   const percentageOptions = Array.from({ length: 10 }, (_, indexValue) => (indexValue + 1) * 10);
-  const labels = lang === "en"
-    ? {
-        question: "Question",
-        sessionType: "Session Type",
-        quiz: "Quiz",
-        flashcards: "Flashcards",
-        language: "Language",
-        percentage: "Question Percentage",
-        order: "Question Order",
-        hardModeTitle: "Hard Mode",
-        hardModeDesc: "One minute per question - time over means the quiz ends",
-        hardModeTime: "Total time",
-        startQuiz: "Start Quiz",
-        startFlashcards: "Start Review",
-        random: "Random",
-        sequential: "Sequential",
-      }
-    : {
-        question: "سؤال",
-        sessionType: "نوع الجلسة",
-        quiz: "كوز",
-        flashcards: "فلاش كارد",
-        language: "اللغة",
-        percentage: "نسبة الأسئلة",
-        order: "ترتيب الأسئلة",
-        hardModeTitle: "Hard Mode",
-        hardModeDesc: "دقيقة لكل سؤال - انتهاء الوقت يعني نهاية الكوز",
-        hardModeTime: "الوقت الكلي",
-        startQuiz: "ابدأ الكوز",
-        startFlashcards: "ابدأ المراجعة",
-        random: "عشوائي",
-        sequential: "تسلسلي",
-      };
+  const labels = {
+    question: "سؤال",
+    sessionType: "نوع الجلسة",
+    quiz: "كوز",
+    flashcards: "فلاش كارد",
+    percentage: "نسبة الأسئلة",
+    order: "ترتيب الأسئلة",
+    hardModeTitle: "Hard Mode",
+    hardModeDesc: "دقيقة لكل سؤال - انتهاء الوقت يعني نهاية الكوز",
+    hardModeTime: "الوقت الكلي",
+    startQuiz: "ابدأ الكوز",
+    startFlashcards: "ابدأ المراجعة",
+    random: "عشوائي",
+    sequential: "تسلسلي",
+  };
 
   const scopeLabel = params.topicId
     ? "كوز موضوع"
@@ -96,7 +76,6 @@ export default function QuizSetupScreen() {
       topicId: params.topicId ?? "",
       percentage: percentage.toString(),
       order,
-      lang,
     });
 
     if (sessionType === "quiz") {
@@ -207,37 +186,6 @@ export default function QuizSetupScreen() {
         </>
       )}
 
-      <Text style={[s.sectionTitle, { color: theme.textSecondary }]}>{labels.language}</Text>
-      <View style={s.row}>
-        {([
-          { value: "ar", label: "العربية" },
-          { value: "en", label: "English" },
-        ] as const).map((item) => (
-          <TouchableOpacity
-            key={item.value}
-            style={[
-              s.selectionBtn,
-              {
-                backgroundColor: theme.card,
-                borderColor: lang === item.value ? theme.primary : theme.secondary + "44",
-              },
-              lang === item.value && { backgroundColor: theme.primary + "15" },
-            ]}
-            onPress={() => setLang(item.value)}
-          >
-            <Text
-              style={{
-                color: lang === item.value ? theme.primary : theme.textSecondary,
-                fontWeight: "bold",
-                fontSize: 14,
-              }}
-            >
-              {item.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
       <Text style={[s.sectionTitle, { color: theme.textSecondary }]}>{labels.percentage}</Text>
       <View style={s.percentageGrid}>
         {percentageOptions.map((value) => (
@@ -321,7 +269,7 @@ export default function QuizSetupScreen() {
             </Text>
             {hardMode && (
               <Text style={{ color: theme.wrong, fontSize: 11, marginTop: 4 }}>
-                ⚠️ {labels.hardModeTime}: {selectedQuestionCount} {lang === "en" ? "minutes" : "دقيقة"}
+                ⚠️ {labels.hardModeTime}: {selectedQuestionCount} دقيقة
               </Text>
             )}
           </View>
