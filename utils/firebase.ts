@@ -7,6 +7,7 @@ import {
   signInWithEmailAndPassword,
   signOut,
 } from "firebase/auth";
+const { getReactNativePersistence } = require("firebase/auth");
 import {
   collection,
   deleteDoc,
@@ -32,29 +33,12 @@ const app =
   getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 const db = getFirestore(app);
 
-// ✅ Custom persistence — يحفظ الجلسة في AsyncStorage
-const asyncStoragePersistence = {
-  type: "LOCAL" as const,
-  async _isAvailable(): Promise<boolean> {
-    return true;
-  },
-  async _set(key: string, value: string): Promise<void> {
-    await AsyncStorage.setItem(key, value);
-  },
-  async _get(key: string): Promise<string | null> {
-    return AsyncStorage.getItem(key);
-  },
-  async _remove(key: string): Promise<void> {
-    await AsyncStorage.removeItem(key);
-  },
-  _addListener(_key: string, _listener: unknown): void {},
-  _removeListener(_key: string, _listener: unknown): void {},
-};
-
-// ✅ آمن لـ APK + Dev + Hot Reload
+// ✅ الطريقة الرسمية الصحيحة
 export const auth = (() => {
   try {
-    return initializeAuth(app, { persistence: asyncStoragePersistence as any });
+    return initializeAuth(app, {
+      persistence: getReactNativePersistence(AsyncStorage),
+    });
   } catch {
     return getAuth(app);
   }
@@ -66,17 +50,11 @@ export async function ensureAuth(): Promise<string> {
   throw new Error("NOT_LOGGED_IN");
 }
 
-export async function loginUser(
-  email: string,
-  password: string,
-): Promise<void> {
+export async function loginUser(email: string, password: string): Promise<void> {
   await signInWithEmailAndPassword(auth, email, password);
 }
 
-export async function registerUser(
-  email: string,
-  password: string,
-): Promise<void> {
+export async function registerUser(email: string, password: string): Promise<void> {
   await createUserWithEmailAndPassword(auth, email, password);
 }
 
@@ -101,10 +79,7 @@ export async function syncResultToFirestore(result: QuizResult): Promise<void> {
 export async function fetchResultsFromFirestore(): Promise<QuizResult[]> {
   try {
     const uid = await ensureAuth();
-    const q = query(
-      collection(db, "users", uid, "results"),
-      orderBy("date", "desc"),
-    );
+    const q = query(collection(db, "users", uid, "results"), orderBy("date", "desc"));
     const snap = await getDocs(q);
     return snap.docs.map((d) => d.data() as QuizResult);
   } catch (e) {
@@ -113,9 +88,7 @@ export async function fetchResultsFromFirestore(): Promise<QuizResult[]> {
   }
 }
 
-export async function deleteResultFromFirestore(
-  resultId: string,
-): Promise<void> {
+export async function deleteResultFromFirestore(resultId: string): Promise<void> {
   try {
     const uid = await ensureAuth();
     await deleteDoc(doc(db, "users", uid, "results", resultId));
@@ -125,23 +98,16 @@ export async function deleteResultFromFirestore(
 }
 
 // ── Bookmarks ──
-export async function syncBookmarkToFirestore(
-  bookmark: Bookmark,
-): Promise<void> {
+export async function syncBookmarkToFirestore(bookmark: Bookmark): Promise<void> {
   try {
     const uid = await ensureAuth();
-    await setDoc(
-      doc(db, "users", uid, "bookmarks", bookmark.questionId),
-      bookmark,
-    );
+    await setDoc(doc(db, "users", uid, "bookmarks", bookmark.questionId), bookmark);
   } catch (e) {
     console.error("syncBookmark error:", e);
   }
 }
 
-export async function deleteBookmarkFromFirestore(
-  questionId: string,
-): Promise<void> {
+export async function deleteBookmarkFromFirestore(questionId: string): Promise<void> {
   try {
     const uid = await ensureAuth();
     await deleteDoc(doc(db, "users", uid, "bookmarks", questionId));
