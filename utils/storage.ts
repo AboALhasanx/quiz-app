@@ -1,28 +1,31 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { syncResultToFirestore, syncBookmarkToFirestore, deleteBookmarkFromFirestore } from "./firebase";
+import {
+  syncResultToFirestore,
+  syncBookmarkToFirestore,
+  deleteBookmarkFromFirestore,
+} from "./firebase";
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// Types
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+export type Language = "ar" | "en";
+export type AnswerMap = Record<string, number>;
 
 export type QuizResult = {
-  id:         string;
-  subjectId:  string;
-  chapterId:  string;
-  topicId:    string;
-  mode:       string;
-  correct:    number;
-  wrong:      number;
-  skipped:    number;
-  total:      number;
+  id: string;
+  subjectId: string;
+  chapterId: string;
+  topicId: string;
+  mode: string;
+  correct: number;
+  wrong: number;
+  skipped: number;
+  total: number;
   percentage: number;
-  date:       string;
+  date: string;
 };
 
 export type Bookmark = {
   questionId: string;
-  subjectId:  string;
-  savedAt:    string;
+  subjectId: string;
+  savedAt: string;
 };
 
 export type CompletionEntry = {
@@ -30,114 +33,154 @@ export type CompletionEntry = {
   completedAt: string;
 };
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// Keys
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+export type SyncQueueItem =
+  | {
+      type: "result";
+      action: "save";
+      payload: QuizResult;
+      timestamp: number;
+    }
+  | {
+      type: "result";
+      action: "delete";
+      payload: { id: string };
+      timestamp: number;
+    }
+  | {
+      type: "bookmark";
+      action: "save";
+      payload: Bookmark;
+      timestamp: number;
+    }
+  | {
+      type: "bookmark";
+      action: "delete";
+      payload: { questionId: string };
+      timestamp: number;
+    };
 
-const KEYS = {
-  results:   "quiz_results",
-  bookmarks: "quiz_bookmarks",
-  topicCompletions:   "topicCompletions",
-  chapterCompletions: "chapterCompletions",
-  subjectCompletions: "subjectCompletions",
+export type QuizSession = {
+  subjectId: string;
+  chapterId: string;
+  topicId: string;
+  mode: string;
+  hardMode: string;
+  order: string;
+  percentage: number;
+  lang: Language;
+  questionIds: string[];
+  answers: AnswerMap;
+  current: number;
+  timeLeft: number | null;
+  savedAt: string;
 };
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// Results
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const KEYS = {
+  results: "quiz_results",
+  bookmarks: "quiz_bookmarks",
+  topicCompletions: "topicCompletions",
+  chapterCompletions: "chapterCompletions",
+  subjectCompletions: "subjectCompletions",
+  syncQueue: "sync_queue",
+} as const;
+
+const SESSION_KEY = "quiz_session";
+
+async function readJson<T>(key: string, fallback: T): Promise<T> {
+  try {
+    const raw = await AsyncStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as T) : fallback;
+  } catch (error) {
+    console.error(`readJson error for ${key}:`, error);
+    return fallback;
+  }
+}
+
+async function writeJson<T>(key: string, value: T): Promise<void> {
+  try {
+    await AsyncStorage.setItem(key, JSON.stringify(value));
+  } catch (error) {
+    console.error(`writeJson error for ${key}:`, error);
+  }
+}
 
 export async function saveResult(result: Omit<QuizResult, "id" | "date">): Promise<void> {
   try {
     const existing = await getResults();
     const newResult: QuizResult = {
       ...result,
-      id:   Date.now().toString(),
+      id: Date.now().toString(),
       date: new Date().toISOString(),
     };
     const updated = [newResult, ...existing].slice(0, 200);
-    await AsyncStorage.setItem(KEYS.results, JSON.stringify(updated));
-    await syncResultToFirestore(newResult); // ✅ سنك مع Firebase
-  } catch (e) {
-    console.error("saveResult error:", e);
+    await writeJson(KEYS.results, updated);
+    await syncResultToFirestore(newResult);
+  } catch (error) {
+    console.error("saveResult error:", error);
   }
 }
 
 export async function getResults(): Promise<QuizResult[]> {
-  try {
-    const raw = await AsyncStorage.getItem(KEYS.results);
-    return raw ? JSON.parse(raw) : [];
-  } catch (e) {
-    console.error("getResults error:", e);
-    return [];
-  }
+  return readJson<QuizResult[]>(KEYS.results, []);
 }
 
 export async function clearResults(): Promise<void> {
   try {
     await AsyncStorage.removeItem(KEYS.results);
-  } catch (e) {
-    console.error("clearResults error:", e);
+  } catch (error) {
+    console.error("clearResults error:", error);
   }
 }
 
 export async function removeResult(resultId: string): Promise<void> {
   try {
     const existing = await getResults();
-    const updated = existing.filter(result => result.id !== resultId);
-    await AsyncStorage.setItem(KEYS.results, JSON.stringify(updated));
-  } catch (e) {
-    console.error("removeResult error:", e);
+    const updated = existing.filter((result) => result.id !== resultId);
+    await writeJson(KEYS.results, updated);
+  } catch (error) {
+    console.error("removeResult error:", error);
   }
 }
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// Bookmarks
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
 export async function getBookmarks(): Promise<Bookmark[]> {
-  try {
-    const raw = await AsyncStorage.getItem(KEYS.bookmarks);
-    return raw ? JSON.parse(raw) : [];
-  } catch (e) {
-    console.error("getBookmarks error:", e);
-    return [];
-  }
+  return readJson<Bookmark[]>(KEYS.bookmarks, []);
 }
 
 export async function saveBookmark(questionId: string, subjectId: string): Promise<void> {
   try {
     const existing = await getBookmarks();
-    const already  = existing.find(b => b.questionId === questionId);
-    if (already) return;
+    if (existing.some((bookmark) => bookmark.questionId === questionId)) return;
+
     const newBookmark: Bookmark = {
       questionId,
       subjectId,
       savedAt: new Date().toISOString(),
     };
+
     const updated = [...existing, newBookmark];
-    await AsyncStorage.setItem(KEYS.bookmarks, JSON.stringify(updated));
-    await syncBookmarkToFirestore(newBookmark); // ✅ سنك مع Firebase
-  } catch (e) {
-    console.error("saveBookmark error:", e);
+    await writeJson(KEYS.bookmarks, updated);
+    await syncBookmarkToFirestore(newBookmark);
+  } catch (error) {
+    console.error("saveBookmark error:", error);
   }
 }
 
 export async function removeBookmark(questionId: string): Promise<void> {
   try {
     const existing = await getBookmarks();
-    const updated  = existing.filter(b => b.questionId !== questionId);
-    await AsyncStorage.setItem(KEYS.bookmarks, JSON.stringify(updated));
-    await deleteBookmarkFromFirestore(questionId); // ✅ احذف من Firebase
-  } catch (e) {
-    console.error("removeBookmark error:", e);
+    const updated = existing.filter((bookmark) => bookmark.questionId !== questionId);
+    await writeJson(KEYS.bookmarks, updated);
+    await deleteBookmarkFromFirestore(questionId);
+  } catch (error) {
+    console.error("removeBookmark error:", error);
   }
 }
 
 export async function isBookmarked(questionId: string): Promise<boolean> {
   try {
     const existing = await getBookmarks();
-    return existing.some(b => b.questionId === questionId);
-  } catch (e) {
+    return existing.some((bookmark) => bookmark.questionId === questionId);
+  } catch {
     return false;
   }
 }
@@ -145,8 +188,8 @@ export async function isBookmarked(questionId: string): Promise<boolean> {
 export async function clearBookmarks(): Promise<void> {
   try {
     await AsyncStorage.removeItem(KEYS.bookmarks);
-  } catch (e) {
-    console.error("clearBookmarks error:", e);
+  } catch (error) {
+    console.error("clearBookmarks error:", error);
   }
 }
 
@@ -165,24 +208,14 @@ function getSubjectCompletionStorageKey(subjectId: string) {
 async function getCompletionMap(
   storageKey: string
 ): Promise<Record<string, CompletionEntry>> {
-  try {
-    const raw = await AsyncStorage.getItem(storageKey);
-    return raw ? JSON.parse(raw) : {};
-  } catch (e) {
-    console.error("getCompletionMap error:", e);
-    return {};
-  }
+  return readJson<Record<string, CompletionEntry>>(storageKey, {});
 }
 
 async function saveCompletionMap(
   storageKey: string,
   value: Record<string, CompletionEntry>
 ): Promise<void> {
-  try {
-    await AsyncStorage.setItem(storageKey, JSON.stringify(value));
-  } catch (e) {
-    console.error("saveCompletionMap error:", e);
-  }
+  await writeJson(storageKey, value);
 }
 
 async function markCompletion(storageKey: string, key: string): Promise<void> {
@@ -215,7 +248,10 @@ export async function markTopicCompletion(
   topicId: string
 ): Promise<void> {
   if (!subjectId || !chapterId || !topicId) return;
-  await markCompletion(KEYS.topicCompletions, getTopicCompletionStorageKey(subjectId, chapterId, topicId));
+  await markCompletion(
+    KEYS.topicCompletions,
+    getTopicCompletionStorageKey(subjectId, chapterId, topicId)
+  );
 }
 
 export async function markChapterCompletion(
@@ -223,7 +259,10 @@ export async function markChapterCompletion(
   chapterId: string
 ): Promise<void> {
   if (!subjectId || !chapterId) return;
-  await markCompletion(KEYS.chapterCompletions, getChapterCompletionStorageKey(subjectId, chapterId));
+  await markCompletion(
+    KEYS.chapterCompletions,
+    getChapterCompletionStorageKey(subjectId, chapterId)
+  );
 }
 
 export async function markSubjectCompletion(subjectId: string): Promise<void> {
@@ -243,48 +282,36 @@ export function buildSubjectCompletionKey(subjectId: string) {
   return getSubjectCompletionStorageKey(subjectId);
 }
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// Quiz Session (Resume)
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+export async function getSyncQueue(): Promise<SyncQueueItem[]> {
+  return readJson<SyncQueueItem[]>(KEYS.syncQueue, []);
+}
 
-export type QuizSession = {
-  subjectId:   string;
-  chapterId:   string;
-  topicId:     string;
-  mode:        string;
-  hardMode:    string;
-  order:       string;
-  percentage:  number;
-  questionIds: string[];
-  answers:     Record<string, string>;
-  current:     number;
-  timeLeft:    number | null;
-  savedAt:     string;
-};
+export async function setSyncQueue(queue: SyncQueueItem[]): Promise<void> {
+  await writeJson(KEYS.syncQueue, queue);
+}
 
-const SESSION_KEY = "quiz_session";
+export async function enqueueSyncOperation(item: SyncQueueItem): Promise<void> {
+  const queue = await getSyncQueue();
+  queue.push(item);
+  await setSyncQueue(queue);
+}
 
 export async function saveSession(session: QuizSession): Promise<void> {
   try {
     await AsyncStorage.setItem(SESSION_KEY, JSON.stringify(session));
-  } catch (e) {
-    console.error("saveSession error:", e);
+  } catch (error) {
+    console.error("saveSession error:", error);
   }
 }
 
 export async function getSession(): Promise<QuizSession | null> {
-  try {
-    const raw = await AsyncStorage.getItem(SESSION_KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch (e) {
-    return null;
-  }
+  return readJson<QuizSession | null>(SESSION_KEY, null);
 }
 
 export async function clearSession(): Promise<void> {
   try {
     await AsyncStorage.removeItem(SESSION_KEY);
-  } catch (e) {
-    console.error("clearSession error:", e);
+  } catch (error) {
+    console.error("clearSession error:", error);
   }
 }

@@ -1,39 +1,16 @@
 import { useState, useCallback } from "react";
 import { View, Text, FlatList, TouchableOpacity, StyleSheet } from "react-native";
 import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
-import { useTheme } from "../../utils/ThemeContext";
-import index from "../../data/subjects/index.json";
-import aiData from "../../data/subjects/ai_data.json";
-import cnData from "../../data/subjects/cn_data.json";
-import dsData from "../../data/subjects/ds_data.json";
-import oopData from "../../data/subjects/oop_data.json";
-import osData from "../../data/subjects/os_data.json";
-import seData from "../../data/subjects/se_data.json";
-import { getChapterCompletions, buildChapterCompletionKey } from "../../utils/storage";
 import { Ionicons } from "@expo/vector-icons";
-
-type Subject = any;
-
-const SUBJECT_DATA_BY_FILE: Record<string, Subject> = {
-  "ai_data.json": aiData,
-  "cn_data.json": cnData,
-  "ds_data.json": dsData,
-  "oop_data.json": oopData,
-  "os_data.json": osData,
-  "se_data.json": seData,
-};
-
-const SUBJECTS = index.subjects.reduce<Record<string, Subject>>((acc, subject) => {
-  const data = SUBJECT_DATA_BY_FILE[subject.file];
-  if (data) acc[subject.id] = data;
-  return acc;
-}, {});
+import { useTheme } from "../../utils/ThemeContext";
+import { buildChapterCompletionKey, getChapterCompletions } from "../../utils/storage";
+import { loadSubjectDataById } from "../../utils/subjects";
 
 export default function SubjectDetailScreen() {
   const { theme } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const subject = SUBJECTS[id];
+  const subject = loadSubjectDataById(id ?? "");
 
   const [completedChaptersCount, setCompletedChaptersCount] = useState(0);
 
@@ -41,10 +18,12 @@ export default function SubjectDetailScreen() {
     useCallback(() => {
       getChapterCompletions().then((chapterCompletions) => {
         if (!subject) return;
-        const completedCount = subject.chapters.filter((chapter: any) => {
+
+        const completedCount = subject.chapters.filter((chapter) => {
           const key = buildChapterCompletionKey(id ?? "", chapter.id);
           return !!chapterCompletions[key]?.completed;
         }).length;
+
         setCompletedChaptersCount(completedCount);
       });
     }, [id, subject])
@@ -59,34 +38,28 @@ export default function SubjectDetailScreen() {
   }
 
   const totalQuestions = subject.chapters.reduce(
-    (sum: number, chapter: any) =>
-      sum + chapter.topics.reduce((topicSum: number, topic: any) => topicSum + topic.questions.length, 0),
+    (sum, chapter) =>
+      sum + chapter.topics.reduce((topicSum, topic) => topicSum + topic.questions.length, 0),
     0
   );
 
   return (
     <View style={[s.container, { backgroundColor: theme.background }]}>
-
       <View style={[s.subjectCard, { backgroundColor: theme.card, borderColor: theme.secondary + "44" }]}>
-        <Text style={{ color: theme.primary, fontWeight: "bold", fontSize: 13, textAlign: "right", marginBottom: 4 }}>
-          {id.toUpperCase()}
-        </Text>
-        <Text style={{ color: theme.textPrimary, fontSize: 20, fontWeight: "bold", textAlign: "right", marginBottom: 12 }}>
-          {subject.title}
-        </Text>
-
+        <Text style={[s.subjectCode, { color: theme.primary }]}>{(id ?? "").toUpperCase()}</Text>
+        <Text style={[s.subjectTitle, { color: theme.textPrimary }]}>{subject.title}</Text>
         <View style={s.subjectMeta}>
           <View style={s.metaItem}>
             <Ionicons name="book-outline" size={14} color={theme.textSecondary} />
-            <Text style={{ color: theme.textSecondary, fontSize: 13 }}>{subject.chapters.length} فصول</Text>
+            <Text style={[s.metaText, { color: theme.textSecondary }]}>{subject.chapters.length} فصول</Text>
           </View>
           <View style={s.metaItem}>
             <Ionicons name="help-circle-outline" size={14} color={theme.textSecondary} />
-            <Text style={{ color: theme.textSecondary, fontSize: 13 }}>{totalQuestions} سؤال</Text>
+            <Text style={[s.metaText, { color: theme.textSecondary }]}>{totalQuestions} سؤال</Text>
           </View>
         </View>
 
-        <Text style={{ color: theme.textSecondary, fontSize: 13, textAlign: "right", marginBottom: 14 }}>
+        <Text style={[s.completionText, { color: theme.textSecondary }]}>
           تم إنهاء {completedChaptersCount} من {subject.chapters.length} فصول
         </Text>
 
@@ -95,13 +68,11 @@ export default function SubjectDetailScreen() {
           onPress={() => router.push(`/quiz/setup?scope=subject&subjectId=${id}&chapterId=&topicId=` as any)}
         >
           <Ionicons name="play-circle-outline" size={18} color="#fff" />
-          <Text style={{ color: "#fff", fontWeight: "bold", fontSize: 14 }}>كوز شامل للمادة</Text>
+          <Text style={s.fullQuizText}>كوز شامل للمادة</Text>
         </TouchableOpacity>
       </View>
 
-      <Text style={{ color: theme.textPrimary, fontSize: 16, fontWeight: "bold", textAlign: "right", marginBottom: 12 }}>
-        الفصول
-      </Text>
+      <Text style={[s.sectionTitle, { color: theme.textPrimary }]}>الفصول</Text>
 
       <FlatList
         data={subject.chapters}
@@ -109,8 +80,10 @@ export default function SubjectDetailScreen() {
         showsVerticalScrollIndicator={false}
         renderItem={({ item }) => {
           const totalChapterQuestions = item.topics.reduce(
-            (sum: number, topic: any) => sum + topic.questions.length, 0
+            (sum, topic) => sum + topic.questions.length,
+            0
           );
+
           return (
             <TouchableOpacity
               style={[s.card, { backgroundColor: theme.card, borderColor: theme.secondary + "44" }]}
@@ -119,14 +92,13 @@ export default function SubjectDetailScreen() {
             >
               <View style={s.cardContent}>
                 <View style={s.cardText}>
-                  <Text style={{ color: theme.textPrimary, fontSize: 15, fontWeight: "600", textAlign: "right", marginBottom: 6 }}>
-                    {item.title}
-                  </Text>
+                  <Text style={[s.chapterTitle, { color: theme.textPrimary }]}>{item.title}</Text>
                   <View style={s.cardMeta}>
-                    <Text style={{ color: theme.textSecondary, fontSize: 12 }}>❓ {totalChapterQuestions} سؤال</Text>
-                    <Text style={{ color: theme.textSecondary, fontSize: 12 }}>📝 {item.topics.length} موضوع</Text>
+                    <Text style={[s.metaSmall, { color: theme.textSecondary }]}>❓ {totalChapterQuestions} سؤال</Text>
+                    <Text style={[s.metaSmall, { color: theme.textSecondary }]}>📝 {item.topics.length} موضوع</Text>
                   </View>
                 </View>
+
                 <View style={s.cardRight}>
                   <Ionicons name="chevron-back-outline" size={20} color={theme.textSecondary} />
                 </View>
@@ -140,15 +112,35 @@ export default function SubjectDetailScreen() {
 }
 
 const s = StyleSheet.create({
-  container:   { flex: 1, padding: 16, paddingTop: 60 },
-  center:      { flex: 1, justifyContent: "center", alignItems: "center" },
-  subjectCard: { borderRadius: 16, padding: 20, marginBottom: 20, borderWidth: 1 },
+  container: { flex: 1, padding: 16, paddingTop: 60 },
+  center: { flex: 1, justifyContent: "center", alignItems: "center" },
+  subjectCard: {
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 20,
+    borderWidth: 1,
+  },
+  subjectCode: { fontWeight: "bold", fontSize: 13, textAlign: "right", marginBottom: 4 },
+  subjectTitle: { fontSize: 20, fontWeight: "bold", textAlign: "right", marginBottom: 12 },
   subjectMeta: { flexDirection: "row", justifyContent: "flex-end", gap: 16, marginBottom: 10 },
-  metaItem:    { flexDirection: "row", alignItems: "center", gap: 4 },
-  fullQuizBtn: { borderRadius: 10, padding: 12, flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 8 },
-  card:        { borderRadius: 14, padding: 14, marginBottom: 10, borderWidth: 1 },
+  metaItem: { flexDirection: "row", alignItems: "center", gap: 4 },
+  metaText: { fontSize: 13 },
+  completionText: { fontSize: 13, textAlign: "right", marginBottom: 14 },
+  fullQuizBtn: {
+    borderRadius: 10,
+    padding: 12,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 8,
+  },
+  fullQuizText: { color: "#fff", fontWeight: "bold", fontSize: 14 },
+  sectionTitle: { fontSize: 16, fontWeight: "bold", textAlign: "right", marginBottom: 12 },
+  card: { borderRadius: 14, padding: 14, marginBottom: 10, borderWidth: 1 },
   cardContent: { flexDirection: "row", alignItems: "center", gap: 12 },
-  cardText:    { flex: 1 },
-  cardMeta:    { flexDirection: "row", justifyContent: "flex-end", gap: 12 },
-  cardRight:   { alignItems: "center", justifyContent: "center" },
+  cardText: { flex: 1 },
+  chapterTitle: { fontSize: 15, fontWeight: "600", textAlign: "right", marginBottom: 6 },
+  cardMeta: { flexDirection: "row", justifyContent: "flex-end", gap: 12 },
+  metaSmall: { fontSize: 12 },
+  cardRight: { alignItems: "center", justifyContent: "center" },
 });

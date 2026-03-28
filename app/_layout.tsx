@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Stack, router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { onAuthStateChanged } from "firebase/auth";
-import { auth } from "../utils/firebase";
+import { auth, flushSyncQueue } from "../utils/firebase";
 import { View, ActivityIndicator } from "react-native";
 import { DarkTheme, DefaultTheme, ThemeProvider as NavThemeProvider } from "@react-navigation/native";
 import * as SystemUI from "expo-system-ui";
@@ -26,6 +26,7 @@ function AppContent() {
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (user) => {
       if (user) {
+        void flushSyncQueue();
         router.replace("/(tabs)");
       } else {
         router.replace("/login");
@@ -61,6 +62,7 @@ function AppContent() {
         <Stack.Screen name="bookmarks/[questionId]" options={{ title: "تفاصيل المحفوظ" }} />
         <Stack.Screen name="quiz/setup"             options={{ title: "إعداد الكوز" }} />
         <Stack.Screen name="quiz/play"              options={{ headerShown: false }} />
+        <Stack.Screen name="quiz/flashcards"        options={{ title: "Flashcards" }} />
         <Stack.Screen name="quiz/result"            options={{ title: "النتيجة" }} />
       </Stack>
     </NavThemeProvider>
