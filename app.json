@@ -1,26 +1,23 @@
 {
   "expo": {
-    "name": "quiz-app",
-    "slug": "quiz-app",
+    "name": "تنافسي البرمجيات",
+    "slug": "competitive-software",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "quizapp",
-    "userInterfaceStyle": "dark",
-    "backgroundColor": "#0f0f13",
+    "userInterfaceStyle": "automatic",
+    "backgroundColor": "#EDDEC7",
     "ios": {
       "supportsTablet": true
     },
     "android": {
-      "package": "com.quiz.quizapp",
-      "backgroundColor": "#0f0f13",
+      "package": "com.aboalhasannn.competitivesoftware",
+      "backgroundColor": "#EDDEC7",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
-      },
-      "googleServicesFile": "./google-services.json"
+        "foregroundImage": "./assets/images/icon.png",
+        "backgroundColor": "#EDDEC7"
+      }
     },
     "web": {
       "output": "single",
@@ -34,9 +31,9 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#0f0f13",
+          "backgroundColor": "#EDDEC7",
           "dark": {
-            "backgroundColor": "#0f0f13"
+            "backgroundColor": "#EDDEC7"
           }
         }
       ],

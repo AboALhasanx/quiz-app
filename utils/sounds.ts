@@ -1,7 +1,10 @@
 // utils/sounds.ts
 import { Audio } from "expo-av";
 
+const SOUND_ENABLED = false; // ← غيّره true وقت تريد الصوت
+
 export async function playCorrect() {
+  if (!SOUND_ENABLED) return;
   const { sound } = await Audio.Sound.createAsync(
     require("../assets/sounds/correct.mp3")
   );
@@ -9,6 +12,7 @@ export async function playCorrect() {
 }
 
 export async function playWrong() {
+  if (!SOUND_ENABLED) return;
   const { sound } = await Audio.Sound.createAsync(
     require("../assets/sounds/wrong.mp3")
   );
