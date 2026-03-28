@@ -55,14 +55,18 @@ export default function ResultScreen() {
   let skippedCount = 0;
 
   questions.forEach((question) => {
-    const chosenAnswerIndex = answers[question.id];
+    const selectedOriginalIndex = answers[question.id];
 
-    if (chosenAnswerIndex === undefined || chosenAnswerIndex === null || Number.isNaN(chosenAnswerIndex)) {
+    if (
+      selectedOriginalIndex === undefined ||
+      selectedOriginalIndex === null ||
+      Number.isNaN(selectedOriginalIndex)
+    ) {
       skippedCount += 1;
       return;
     }
 
-    if (chosenAnswerIndex === question.answer) {
+    if (selectedOriginalIndex === question.answer) {
       correctCount += 1;
       return;
     }
@@ -191,17 +195,17 @@ export default function ResultScreen() {
       {showReview && (
         <View style={s.reviewList}>
           {questions.map((question, indexValue) => {
-            const chosenAnswerIndex = answers[question.id];
+            const selectedOriginalIndex = answers[question.id];
             const correctDisplayText = getQuestionOptions(question, lang)[question.answer];
             const chosenDisplayText =
-              chosenAnswerIndex !== undefined && chosenAnswerIndex !== null
-                ? getQuestionOptions(question, lang)[chosenAnswerIndex] ?? ""
+              selectedOriginalIndex !== undefined && selectedOriginalIndex !== null
+                ? getQuestionOptions(question, lang)[selectedOriginalIndex] ?? ""
                 : "";
             const isSkipped =
-              chosenAnswerIndex === undefined ||
-              chosenAnswerIndex === null ||
-              Number.isNaN(chosenAnswerIndex);
-            const isCorrect = !isSkipped && chosenAnswerIndex === question.answer;
+              selectedOriginalIndex === undefined ||
+              selectedOriginalIndex === null ||
+              Number.isNaN(selectedOriginalIndex);
+            const isCorrect = !isSkipped && selectedOriginalIndex === question.answer;
 
             return (
               <View

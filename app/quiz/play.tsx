@@ -25,7 +25,6 @@ import {
 import {
   SubjectQuestion,
   getQuestionExplanation,
-  getQuestionOptions,
   getQuestionText,
   getScopedQuestions,
   loadSubjectDataById,
@@ -33,9 +32,11 @@ import {
 import { playCorrect, playWrong } from "../../utils/sounds";
 
 type ShuffledQuestion = SubjectQuestion & {
-  options: string[];
-  options_en?: string[];
-  optionOrder: number[];
+  shuffledOptions: {
+    text: string;
+    text_en?: string;
+    originalIndex: number;
+  }[];
 };
 
 function shuffle<T>(items: T[]): T[] {
@@ -50,21 +51,23 @@ function shuffle<T>(items: T[]): T[] {
 function shuffleQuestion(question: SubjectQuestion): ShuffledQuestion {
   const arabicOptions = question.options ?? question.options_en ?? [];
   const englishOptions = question.options_en ?? question.options ?? [];
-  const optionOrder = arabicOptions.map((_, optionIndex) => optionIndex);
+  const shuffledOptions = arabicOptions.map((optionText, optionIndex) => ({
+    text: optionText,
+    text_en: englishOptions[optionIndex],
+    originalIndex: optionIndex,
+  }));
 
-  for (let indexValue = optionOrder.length - 1; indexValue > 0; indexValue -= 1) {
+  for (let indexValue = shuffledOptions.length - 1; indexValue > 0; indexValue -= 1) {
     const swapIndex = Math.floor(Math.random() * (indexValue + 1));
-    [optionOrder[indexValue], optionOrder[swapIndex]] = [
-      optionOrder[swapIndex],
-      optionOrder[indexValue],
+    [shuffledOptions[indexValue], shuffledOptions[swapIndex]] = [
+      shuffledOptions[swapIndex],
+      shuffledOptions[indexValue],
     ];
   }
 
   return {
     ...question,
-    options: optionOrder.map((optionIndex) => arabicOptions[optionIndex]),
-    options_en: optionOrder.map((optionIndex) => englishOptions[optionIndex]),
-    optionOrder,
+    shuffledOptions,
   };
 }
 
@@ -306,15 +309,18 @@ export default function QuizPlayScreen() {
     if (!question) return;
     if (mode === "recitation" && revealed) return;
 
-    const canonicalAnswerIndex = question.optionOrder[displayIndex];
-    const updatedAnswers = { ...answersRef.current, [question.id]: canonicalAnswerIndex };
+    const selectedOption = question.shuffledOptions[displayIndex];
+    if (!selectedOption) return;
+
+    const originalIndex = selectedOption.originalIndex;
+    const updatedAnswers = { ...answersRef.current, [question.id]: originalIndex };
 
     answersRef.current = updatedAnswers;
     setAnswers(updatedAnswers);
 
     if (mode === "recitation") {
       setRevealed(true);
-      if (canonicalAnswerIndex === question.answer) {
+      if (originalIndex === question.answer) {
         playCorrect();
       } else {
         playWrong();
@@ -338,7 +344,7 @@ export default function QuizPlayScreen() {
     }
 
     const chosenAnswerIndex = answers[question.id];
-    const optionIdentity = question.optionOrder[displayIndex];
+    const optionIdentity = question.shuffledOptions[displayIndex]?.originalIndex;
 
     if (mode === "paper") {
       return chosenAnswerIndex === optionIdentity
@@ -367,7 +373,7 @@ export default function QuizPlayScreen() {
     if (!question) return [s.optionText, { color: theme.textPrimary }];
 
     const chosenAnswerIndex = answers[question.id];
-    const optionIdentity = question.optionOrder[displayIndex];
+    const optionIdentity = question.shuffledOptions[displayIndex]?.originalIndex;
 
     if (mode === "recitation" && revealed) {
       if (optionIdentity === question.answer) {
@@ -490,7 +496,7 @@ export default function QuizPlayScreen() {
           {getQuestionText(question, lang)}
         </Text>
 
-        {question.options.map((_, displayIndex) => (
+        {question.shuffledOptions.map((option, displayIndex) => (
           <Pressable key={displayIndex} style={getOptionStyle(displayIndex)} onPress={() => handleAnswer(displayIndex)}>
             <Text style={{ color: theme.textSecondary, fontWeight: "bold", fontSize: 15, width: 24, textAlign: "center" }}>
               {["أ", "ب", "ج", "د"][displayIndex] ?? "-"}
@@ -501,7 +507,7 @@ export default function QuizPlayScreen() {
                 { textAlign, writingDirection },
               ]}
             >
-              {getQuestionOptions(question, lang)[displayIndex] ?? question.options[displayIndex]}
+              {lang === "en" ? option.text_en ?? option.text : option.text}
             </Text>
           </Pressable>
         ))}

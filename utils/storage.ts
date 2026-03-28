@@ -6,6 +6,7 @@ import {
 } from "./firebase";
 
 export type Language = "ar" | "en";
+// questionId -> original option index from the source JSON, never the shuffled display position
 export type AnswerMap = Record<string, number>;
 
 export type QuizResult = {
