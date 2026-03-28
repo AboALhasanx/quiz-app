@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { Stack, router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { getAuth, onAuthStateChanged } from "firebase/auth";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth } from "../utils/firebase";
 import { View, ActivityIndicator } from "react-native";
 import { DarkTheme, ThemeProvider } from "@react-navigation/native";
 import * as SystemUI from "expo-system-ui";   // ← جديد
@@ -18,7 +19,6 @@ export default function RootLayout() {
   SystemUI.setBackgroundColorAsync("#0f0f13");
 
   useEffect(() => {
-    const auth = getAuth();
     const unsub = onAuthStateChanged(auth, (user) => {
       if (!user) router.replace("/login");
       setChecking(false);
