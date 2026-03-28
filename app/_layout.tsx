@@ -5,7 +5,7 @@ import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "../utils/firebase";
 import { View, ActivityIndicator } from "react-native";
 import { DarkTheme, ThemeProvider } from "@react-navigation/native";
-import * as SystemUI from "expo-system-ui";   // ← جديد
+import * as SystemUI from "expo-system-ui";
 
 const AppTheme = {
   ...DarkTheme,
@@ -15,12 +15,15 @@ const AppTheme = {
 export default function RootLayout() {
   const [checking, setChecking] = useState(true);
 
-  // ✅ هذا السطر هو الحل الفعلي — يصبغ خلفية Android الأصلية
   SystemUI.setBackgroundColorAsync("#0f0f13");
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (user) => {
-      if (!user) router.replace("/login");
+      if (user) {
+        router.replace("/(tabs)");
+      } else {
+        router.replace("/login");
+      }
       setChecking(false);
     });
     return unsub;
@@ -42,7 +45,7 @@ export default function RootLayout() {
           headerStyle:     { backgroundColor: "#0f0f13" },
           headerTintColor: "#f1f5f9",
           contentStyle:    { backgroundColor: "#0f0f13" },
-          animation:       "fade"  ,
+          animation:       "fade",
         }}
       >
         <Stack.Screen name="login"                  options={{ headerShown: false }} />
