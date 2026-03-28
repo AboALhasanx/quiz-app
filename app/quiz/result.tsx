@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { Colors } from "../../constants/colors";
+import { useTheme } from "../../utils/ThemeContext";
 import index from "../../data/subjects/index.json";
 import aiData from "../../data/subjects/ai_data.json";
 import cnData from "../../data/subjects/cn_data.json";
@@ -11,9 +11,7 @@ import osData from "../../data/subjects/os_data.json";
 import seData from "../../data/subjects/se_data.json";
 import { saveResult, markTopicCompletion, markChapterCompletion, markSubjectCompletion } from "../../utils/storage";
 
-
 type Subject = any;
-
 
 const SUBJECT_DATA_BY_FILE: Record<string, Subject> = {
   "ai_data.json": aiData,
@@ -24,39 +22,30 @@ const SUBJECT_DATA_BY_FILE: Record<string, Subject> = {
   "se_data.json": seData,
 };
 
-
 const SUBJECTS = index.subjects.reduce<Record<string, Subject>>((acc, subject) => {
   const data = SUBJECT_DATA_BY_FILE[subject.file];
   if (data) acc[subject.id] = data;
   return acc;
 }, {});
 
-
 function getQuestionText(question: any, lang = "ar"): string {
-  return lang === "en"
-    ? (question.text_en    ?? question.text    ?? "")
-    : (question.text       ?? question.text_en ?? "");
+  return lang === "en" ? (question.text_en ?? question.text ?? "") : (question.text ?? question.text_en ?? "");
 }
 
 function getQuestionOptions(question: any, lang = "ar"): string[] {
-  return lang === "en"
-    ? (question.options_en ?? question.options    ?? [])
-    : (question.options    ?? question.options_en ?? []);
+  return lang === "en" ? (question.options_en ?? question.options ?? []) : (question.options ?? question.options_en ?? []);
 }
 
 function getQuestionExplanation(question: any, lang = "ar"): string {
-  return lang === "en"
-    ? (question.explanation_en ?? question.explanation ?? "")
-    : (question.explanation    ?? question.explanation_en ?? "");
+  return lang === "en" ? (question.explanation_en ?? question.explanation ?? "") : (question.explanation ?? question.explanation_en ?? "");
 }
 
-
 export default function ResultScreen() {
+  const { theme } = useTheme();
   const params = useLocalSearchParams<{
     subjectId: string; chapterId: string; topicId: string;
     mode: string; answers: string; questionIds: string;
-    scope?: string; percentage?: string;
-    lang?: string;
+    scope?: string; percentage?: string; lang?: string;
   }>();
   const router = useRouter();
 
@@ -68,22 +57,15 @@ export default function ResultScreen() {
   const subject = SUBJECTS[params.subjectId];
   let allQuestions: any[] = [];
   if (subject) {
-    const chapters = params.chapterId
-      ? subject.chapters.filter((c: any) => c.id === params.chapterId)
-      : subject.chapters;
+    const chapters = params.chapterId ? subject.chapters.filter((c: any) => c.id === params.chapterId) : subject.chapters;
     chapters.forEach((ch: any) => {
-      const topics = params.topicId
-        ? ch.topics.filter((t: any) => t.id === params.topicId)
-        : ch.topics;
+      const topics = params.topicId ? ch.topics.filter((t: any) => t.id === params.topicId) : ch.topics;
       topics.forEach((t: any) => allQuestions.push(...t.questions));
     });
   }
 
-  const questions = questionIds
-    .map(id => allQuestions.find(q => q.id === id))
-    .filter(Boolean);
+  const questions = questionIds.map(id => allQuestions.find(q => q.id === id)).filter(Boolean);
 
-  // الـ scoring يعتمد دائماً على options الأصلية (ar) بغض النظر عن اللغة المعروضة
   let correctCount = 0, wrongCount = 0, skippedCount = 0;
   questions.forEach(q => {
     const ans         = answers[q.id];
@@ -96,28 +78,18 @@ export default function ResultScreen() {
   const total              = questions.length;
   const percentage         = total > 0 ? Math.round((correctCount / total) * 100) : 0;
   const selectedPercentage = Number(params.percentage ?? "100");
-  const scope =
-    params.scope ??
-    (params.topicId ? "topic" : params.chapterId ? "chapter" : "subject");
+  const scope = params.scope ?? (params.topicId ? "topic" : params.chapterId ? "chapter" : "subject");
 
-  const emoji =
-    percentage >= 90 ? "🏆" :
-    percentage >= 70 ? "✅" :
-    percentage >= 50 ? "📚" : "💪";
-
-  const message =
-    percentage >= 90 ? "ممتاز! أداء رائع"    :
-    percentage >= 70 ? "جيد جداً! استمر"      :
-    percentage >= 50 ? "مقبول، راجع الأخطاء"  : "راجع المادة وحاول مجدداً";
+  const emoji   = percentage >= 90 ? "🏆" : percentage >= 70 ? "✅" : percentage >= 50 ? "📚" : "💪";
+  const message = percentage >= 90 ? "ممتاز! أداء رائع" : percentage >= 70 ? "جيد جداً! استمر" : percentage >= 50 ? "مقبول، راجع الأخطاء" : "راجع المادة وحاول مجدداً";
 
   const [showReview, setShowReview] = useState(false);
   const [expandedExp, setExpandedExp] = useState<Record<string, boolean>>({});
   const toggleExp = (id: string) => setExpandedExp(prev => ({ ...prev, [id]: !prev[id] }));
 
-  // الـ direction الديناميكي حسب اللغة
-  const textAlign     = lang === "en" ? "left"  : "right";
-  const writingDir    = lang === "en" ? "ltr"   : "rtl";
-  const rowJustify    = lang === "en" ? "flex-start" : "flex-end";
+  const textAlign  = lang === "en" ? "left"      : "right";
+  const writingDir = lang === "en" ? "ltr"        : "rtl";
+  const rowJustify = lang === "en" ? "flex-start" : "flex-end";
 
   useEffect(() => {
     const persistResult = async () => {
@@ -126,77 +98,63 @@ export default function ResultScreen() {
         chapterId: params.chapterId ?? "",
         topicId:   params.topicId   ?? "",
         mode:      params.mode      ?? "paper",
-        correct:   correctCount,
-        wrong:     wrongCount,
-        skipped:   skippedCount,
-        total,
-        percentage,
+        correct: correctCount, wrong: wrongCount, skipped: skippedCount, total, percentage,
       });
-
-      const isCompletion =
-        selectedPercentage === 100 &&
-        total > 0 &&
-        correctCount === total;
-
+      const isCompletion = selectedPercentage === 100 && total > 0 && correctCount === total;
       if (!isCompletion) return;
-
-      if (scope === "topic") {
-        await markTopicCompletion(params.subjectId ?? "", params.chapterId ?? "", params.topicId ?? "");
-        return;
-      }
-      if (scope === "chapter") {
-        await markChapterCompletion(params.subjectId ?? "", params.chapterId ?? "");
-        return;
-      }
-      if (scope === "subject") {
-        await markSubjectCompletion(params.subjectId ?? "");
-      }
+      if (scope === "topic")    { await markTopicCompletion(params.subjectId ?? "", params.chapterId ?? "", params.topicId ?? ""); return; }
+      if (scope === "chapter")  { await markChapterCompletion(params.subjectId ?? "", params.chapterId ?? ""); return; }
+      if (scope === "subject")  { await markSubjectCompletion(params.subjectId ?? ""); }
     };
-
     persistResult();
   }, []);
 
-
   return (
-    <ScrollView style={s.container} contentContainerStyle={s.content}>
+    <ScrollView style={{ flex: 1, backgroundColor: theme.background }} contentContainerStyle={s.content}>
 
       {/* Score Card */}
-      <View style={s.scoreCard}>
+      <View style={[s.scoreCard, { backgroundColor: theme.card, borderColor: theme.secondary + "44" }]}>
         <Text style={s.emoji}>{emoji}</Text>
-        <Text style={s.percentage}>{percentage}%</Text>
-        <Text style={s.message}>{message}</Text>
+        <Text style={{ fontSize: 52, fontWeight: "bold", color: theme.primary }}>{percentage}%</Text>
+        <Text style={{ color: theme.textSecondary, fontSize: 15, marginTop: 4, marginBottom: 20 }}>{message}</Text>
 
         <View style={s.statsRow}>
           <View style={s.stat}>
-            <Text style={[s.statNum, { color: Colors.correct }]}>{correctCount}</Text>
-            <Text style={s.statLabel}>صحيح</Text>
+            <Text style={{ fontSize: 24, fontWeight: "bold", color: theme.correct }}>{correctCount}</Text>
+            <Text style={{ color: theme.textSecondary, fontSize: 12, marginTop: 2 }}>صحيح</Text>
           </View>
-          <View style={s.statDivider} />
+          <View style={[s.statDivider, { backgroundColor: theme.secondary + "44" }]} />
           <View style={s.stat}>
-            <Text style={[s.statNum, { color: Colors.wrong }]}>{wrongCount}</Text>
-            <Text style={s.statLabel}>خاطئ</Text>
+            <Text style={{ fontSize: 24, fontWeight: "bold", color: theme.wrong }}>{wrongCount}</Text>
+            <Text style={{ color: theme.textSecondary, fontSize: 12, marginTop: 2 }}>خاطئ</Text>
           </View>
-          <View style={s.statDivider} />
+          <View style={[s.statDivider, { backgroundColor: theme.secondary + "44" }]} />
           <View style={s.stat}>
-            <Text style={[s.statNum, { color: Colors.textMuted }]}>{skippedCount}</Text>
-            <Text style={s.statLabel}>متروك</Text>
+            <Text style={{ fontSize: 24, fontWeight: "bold", color: theme.textSecondary }}>{skippedCount}</Text>
+            <Text style={{ color: theme.textSecondary, fontSize: 12, marginTop: 2 }}>متروك</Text>
           </View>
-          <View style={s.statDivider} />
+          <View style={[s.statDivider, { backgroundColor: theme.secondary + "44" }]} />
           <View style={s.stat}>
-            <Text style={[s.statNum, { color: Colors.text }]}>{total}</Text>
-            <Text style={s.statLabel}>المجموع</Text>
+            <Text style={{ fontSize: 24, fontWeight: "bold", color: theme.textPrimary }}>{total}</Text>
+            <Text style={{ color: theme.textSecondary, fontSize: 12, marginTop: 2 }}>المجموع</Text>
           </View>
         </View>
       </View>
 
-      {/* زر المراجعة + زر اللغة في نفس الصف */}
+      {/* زر المراجعة + اللغة */}
       <View style={s.reviewRow}>
-        <TouchableOpacity style={s.langToggle} onPress={() => setLang(l => l === "ar" ? "en" : "ar")}>
-          <Text style={s.langToggleText}>{lang === "ar" ? "EN" : "AR"}</Text>
+        <TouchableOpacity
+          style={[s.langToggle, { backgroundColor: theme.card, borderColor: theme.secondary + "44" }]}
+          onPress={() => setLang(l => l === "ar" ? "en" : "ar")}
+        >
+          <Text style={{ color: theme.primary, fontWeight: "700", fontSize: 14 }}>{lang === "ar" ? "EN" : "AR"}</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={s.reviewBtn} onPress={() => setShowReview(v => !v)}>
-          <Text style={s.reviewBtnText}>
+        <TouchableOpacity
+          style={[s.reviewBtn, { backgroundColor: theme.background, borderColor: theme.secondary + "44" }]}
+          onPress={() => setShowReview(v => !v)}
+        >
+          <Text style={{ color: theme.textPrimary, fontWeight: "bold", fontSize: 15 }}>
             {showReview ? "▲ إخفاء المراجعة" : "📋 مراجعة الإجابات"}
           </Text>
         </TouchableOpacity>
@@ -206,67 +164,62 @@ export default function ResultScreen() {
       {showReview && (
         <View style={s.reviewList}>
           {questions.map((q, i) => {
-            const chosenText  = answers[q.id];
-            // الصواب/خطأ يُحسب دائماً على النص العربي الأصلي
-            const correctText = getQuestionOptions(q, "ar")[q.answer];
-            // النص المعروض للإجابة الصحيحة حسب اللغة
+            const chosenText         = answers[q.id];
+            const correctText        = getQuestionOptions(q, "ar")[q.answer];
             const correctDisplayText = getQuestionOptions(q, lang)[q.answer];
-            // تحويل الإجابة المخزونة (ar) إلى النص المعروض (lang)
-            const chosenIndex = getQuestionOptions(q, "ar").indexOf(chosenText);
-            const chosenDisplayText = chosenIndex !== -1
-              ? getQuestionOptions(q, lang)[chosenIndex]
-              : chosenText;
-
-            const isSkipped = chosenText === undefined || chosenText === null || chosenText === "";
-            const isCorrect = !isSkipped && chosenText === correctText;
+            const chosenIndex        = getQuestionOptions(q, "ar").indexOf(chosenText);
+            const chosenDisplayText  = chosenIndex !== -1 ? getQuestionOptions(q, lang)[chosenIndex] : chosenText;
+            const isSkipped          = chosenText === undefined || chosenText === null || chosenText === "";
+            const isCorrect          = !isSkipped && chosenText === correctText;
 
             return (
               <View
                 key={q.id}
                 style={[
                   s.reviewCard,
-                  isCorrect ? s.reviewCorrect : isSkipped ? s.reviewSkipped : s.reviewWrong,
+                  { backgroundColor: theme.card },
+                  isCorrect  ? { borderColor: theme.correct,          borderLeftColor: theme.correct }          :
+                  isSkipped  ? { borderColor: theme.secondary + "44", borderLeftColor: theme.textSecondary }    :
+                               { borderColor: theme.wrong,            borderLeftColor: theme.wrong },
                 ]}
               >
-                <Text style={s.reviewNum}>س{i + 1}</Text>
+                <Text style={{ color: theme.textSecondary, fontSize: 12, marginBottom: 4 }}>س{i + 1}</Text>
 
-                {/* نص السؤال — اتجاه ديناميكي */}
-                <Text style={[s.reviewQuestion, { textAlign, writingDirection: writingDir }]}>
+                <Text style={{ color: theme.textPrimary, fontSize: 14, marginBottom: 8, lineHeight: 22, textAlign, writingDirection: writingDir }}>
                   {getQuestionText(q, lang)}
                 </Text>
 
-                {/* الإجابة الصحيحة — اتجاه ديناميكي */}
                 <View style={[s.reviewAnswer, { justifyContent: rowJustify }]}>
-                  <Text style={s.reviewAnswerLabel}>✅ الصحيحة: </Text>
-                  <Text style={[s.reviewAnswerText, { textAlign, writingDirection: writingDir }]}>
+                  <Text style={{ color: theme.correct, fontSize: 13, fontWeight: "bold" }}>✅ الصحيحة: </Text>
+                  <Text style={{ color: theme.textPrimary, fontSize: 13, flex: 1, textAlign, writingDirection: writingDir }}>
                     {correctDisplayText}
                   </Text>
                 </View>
 
-                {/* إجابة المستخدم الخاطئة — اتجاه ديناميكي */}
                 {!isCorrect && !isSkipped && (
                   <View style={[s.reviewAnswer, { justifyContent: rowJustify }]}>
-                    <Text style={s.reviewWrongLabel}>❌ إجابتك: </Text>
-                    <Text style={[s.reviewAnswerText, { textAlign, writingDirection: writingDir }]}>
+                    <Text style={{ color: theme.wrong, fontSize: 13, fontWeight: "bold" }}>❌ إجابتك: </Text>
+                    <Text style={{ color: theme.textPrimary, fontSize: 13, flex: 1, textAlign, writingDirection: writingDir }}>
                       {chosenDisplayText}
                     </Text>
                   </View>
                 )}
 
                 {isSkipped && (
-                  <Text style={s.skippedLabel}>⚪ لم تجب على هذا السؤال</Text>
+                  <Text style={{ color: theme.textSecondary, fontSize: 13, textAlign: "right", marginTop: 4 }}>
+                    ⚪ لم تجب على هذا السؤال
+                  </Text>
                 )}
 
-                {/* زر الشرح — اتجاه ديناميكي */}
                 {getQuestionExplanation(q, lang) !== "" && (
                   <>
                     <TouchableOpacity onPress={() => toggleExp(q.id)} style={s.expToggle}>
-                      <Text style={s.expToggleText}>
+                      <Text style={{ color: theme.explain, fontSize: 13, fontWeight: "600" }}>
                         {expandedExp[q.id] ? "▲ إخفاء الشرح" : "💡 إظهار الشرح"}
                       </Text>
                     </TouchableOpacity>
                     {expandedExp[q.id] && (
-                      <Text style={[s.expText, { textAlign, writingDirection: writingDir }]}>
+                      <Text style={{ color: theme.textSecondary, fontSize: 13, marginTop: 6, lineHeight: 22, textAlign, writingDirection: writingDir }}>
                         {getQuestionExplanation(q, lang)}
                       </Text>
                     )}
@@ -278,58 +231,33 @@ export default function ResultScreen() {
         </View>
       )}
 
-      <TouchableOpacity style={s.retryBtn} onPress={() => router.back()}>
-        <Text style={s.retryBtnText}>🔄 إعادة المحاولة</Text>
+      <TouchableOpacity style={[s.retryBtn, { backgroundColor: theme.primary }]} onPress={() => router.back()}>
+        <Text style={s.btnText}>🔄 إعادة المحاولة</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={s.homeBtn} onPress={() => router.push("/" as any)}>
-        <Text style={s.homeBtnText}>🏠 الرئيسية</Text>
+      <TouchableOpacity style={[s.homeBtn, { backgroundColor: theme.background, borderColor: theme.secondary + "44" }]} onPress={() => router.push("/" as any)}>
+        <Text style={{ color: theme.textSecondary, fontWeight: "bold", fontSize: 16 }}>🏠 الرئيسية</Text>
       </TouchableOpacity>
 
     </ScrollView>
   );
 }
 
-
 const s = StyleSheet.create({
-  container:         { flex: 1, backgroundColor: Colors.background },
-  content:           { padding: 16, paddingBottom: 60 },
-  scoreCard:         { backgroundColor: Colors.card, borderRadius: 16, padding: 24, alignItems: "center", borderWidth: 1, borderColor: Colors.border, marginBottom: 16 },
-  emoji:             { fontSize: 52, marginBottom: 8 },
-  percentage:        { fontSize: 52, fontWeight: "bold", color: Colors.primary },
-  message:           { color: Colors.textMuted, fontSize: 15, marginTop: 4, marginBottom: 20 },
-  statsRow:          { flexDirection: "row", alignItems: "center", width: "100%" },
-  stat:              { flex: 1, alignItems: "center" },
-  statNum:           { fontSize: 24, fontWeight: "bold" },
-  statLabel:         { color: Colors.textMuted, fontSize: 12, marginTop: 2 },
-  statDivider:       { width: 1, height: 40, backgroundColor: Colors.border },
-
-  // صف المراجعة + اللغة
-  reviewRow:         { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 12 },
-  reviewBtn:         { flex: 1, backgroundColor: Colors.surface, borderRadius: 12, padding: 14, alignItems: "center", borderWidth: 1, borderColor: Colors.border },
-  reviewBtnText:     { color: Colors.text, fontWeight: "bold", fontSize: 15 },
-  langToggle:        { width: 52, height: 48, borderRadius: 12, backgroundColor: Colors.card, justifyContent: "center", alignItems: "center", borderWidth: 1, borderColor: Colors.border },
-  langToggleText:    { color: Colors.primary, fontWeight: "700", fontSize: 14 },
-
-  reviewList:        { gap: 10, marginBottom: 16 },
-  reviewCard:        { backgroundColor: Colors.card, borderRadius: 12, padding: 14, borderWidth: 1, borderLeftWidth: 4 },
-  reviewCorrect:     { borderColor: Colors.correct,  borderLeftColor: Colors.correct },
-  reviewWrong:       { borderColor: Colors.wrong,    borderLeftColor: Colors.wrong },
-  reviewSkipped:     { borderColor: Colors.border,   borderLeftColor: Colors.textMuted },
-  reviewNum:         { color: Colors.textMuted, fontSize: 12, marginBottom: 4 },
-  reviewQuestion:    { color: Colors.text, fontSize: 14, marginBottom: 8, lineHeight: 22 },
-  reviewAnswer:      { flexDirection: "row", flexWrap: "wrap", marginTop: 4 },
-  reviewAnswerLabel: { color: Colors.correct, fontSize: 13, fontWeight: "bold" },
-  reviewWrongLabel:  { color: Colors.wrong,   fontSize: 13, fontWeight: "bold" },
-  reviewAnswerText:  { color: Colors.text,    fontSize: 13, flex: 1 },
-  skippedLabel:      { color: Colors.textMuted, fontSize: 13, textAlign: "right", marginTop: 4 },
-
-  expToggle:         { marginTop: 10, alignSelf: "flex-end" },
-  expToggleText:     { color: Colors.primary, fontSize: 13, fontWeight: "600" },
-  expText:           { color: Colors.textMuted, fontSize: 13, marginTop: 6, lineHeight: 22 },
-
-  retryBtn:          { backgroundColor: Colors.primary, borderRadius: 12, padding: 16, alignItems: "center", marginBottom: 10 },
-  retryBtnText:      { color: "#fff", fontWeight: "bold", fontSize: 16 },
-  homeBtn:           { backgroundColor: Colors.surface, borderRadius: 12, padding: 16, alignItems: "center", borderWidth: 1, borderColor: Colors.border },
-  homeBtnText:       { color: Colors.textMuted, fontWeight: "bold", fontSize: 16 },
+  content:      { padding: 16, paddingBottom: 60 },
+  scoreCard:    { borderRadius: 16, padding: 24, alignItems: "center", borderWidth: 1, marginBottom: 16 },
+  emoji:        { fontSize: 52, marginBottom: 8 },
+  statsRow:     { flexDirection: "row", alignItems: "center", width: "100%" },
+  stat:         { flex: 1, alignItems: "center" },
+  statDivider:  { width: 1, height: 40 },
+  reviewRow:    { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 12 },
+  reviewBtn:    { flex: 1, borderRadius: 12, padding: 14, alignItems: "center", borderWidth: 1 },
+  langToggle:   { width: 52, height: 48, borderRadius: 12, justifyContent: "center", alignItems: "center", borderWidth: 1 },
+  reviewList:   { gap: 10, marginBottom: 16 },
+  reviewCard:   { borderRadius: 12, padding: 14, borderWidth: 1, borderLeftWidth: 4 },
+  reviewAnswer: { flexDirection: "row", flexWrap: "wrap", marginTop: 4 },
+  expToggle:    { marginTop: 10, alignSelf: "flex-end" },
+  retryBtn:     { borderRadius: 12, padding: 16, alignItems: "center", marginBottom: 10 },
+  homeBtn:      { borderRadius: 12, padding: 16, alignItems: "center", borderWidth: 1 },
+  btnText:      { color: "#fff", fontWeight: "bold", fontSize: 16 },
 });

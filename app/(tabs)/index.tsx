@@ -1,7 +1,6 @@
 import { useState, useCallback } from "react";
-import { View, Text, FlatList, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, Switch } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
-import { Colors } from "../../constants/colors";
 import index from "../../data/subjects/index.json";
 import aiData from "../../data/subjects/ai_data.json";
 import cnData from "../../data/subjects/cn_data.json";
@@ -10,6 +9,7 @@ import oopData from "../../data/subjects/oop_data.json";
 import osData from "../../data/subjects/os_data.json";
 import seData from "../../data/subjects/se_data.json";
 import { getResults, QuizResult } from "../../utils/storage";
+import { useTheme } from "../../utils/ThemeContext";
 
 type Subject = any;
 
@@ -33,12 +33,12 @@ function getSubjectMeta(file: string) {
       ) ?? 0),
     0
   ) ?? 0;
-
   return { chaptersCount, questionsCount };
 }
 
 export default function HomeScreen() {
   const router = useRouter();
+  const { theme, isDark, toggle } = useTheme();
   const [lastResults, setLastResults] = useState<Record<string, QuizResult>>({});
 
   useFocusEffect(useCallback(() => {
@@ -52,15 +52,33 @@ export default function HomeScreen() {
   }, []));
 
   const getScoreColor = (p: number) =>
-    p >= 70 ? Colors.correct : p >= 50 ? Colors.primary : Colors.wrong;
+    p >= 70 ? theme.correct : p >= 50 ? theme.primary : theme.wrong;
 
   return (
-    <View style={s.container}>
+    <View style={[s.container, { backgroundColor: theme.background }]}>
+
+      {/* Header */}
       <View style={s.topRow}>
-        <Text style={s.header}>موادي</Text>
-        <Text style={s.subtitle}>{index.subjects.length} مادة</Text>
+        <View style={s.switchRow}>
+          <Text style={{ color: theme.textSecondary, fontSize: 12, marginRight: 6 }}>
+            {isDark ? "🌙" : "☀️"}
+          </Text>
+          <Switch
+            value={isDark}
+            onValueChange={toggle}
+            trackColor={{ false: theme.secondary, true: theme.primary }}
+            thumbColor={theme.textPrimary}
+          />
+        </View>
+        <View style={{ alignItems: "flex-end" }}>
+          <Text style={[s.header, { color: theme.textPrimary }]}>موادي</Text>
+          <Text style={[s.subtitle, { color: theme.textSecondary }]}>
+            {index.subjects.length} مادة
+          </Text>
+        </View>
       </View>
 
+      {/* List */}
       <FlatList
         data={index.subjects}
         keyExtractor={(item) => item.id}
@@ -72,13 +90,13 @@ export default function HomeScreen() {
 
           return (
             <TouchableOpacity
-              style={s.card}
+              style={[s.card, { backgroundColor: theme.card, borderColor: theme.secondary + "44" }]}
               onPress={() => router.push(`/subject/${item.id}` as any)}
               activeOpacity={0.75}
             >
               <View style={s.cardTop}>
-                <View style={s.codeBadge}>
-                  <Text style={s.codeText}>{code}</Text>
+                <View style={[s.codeBadge, { backgroundColor: theme.primary + "22" }]}>
+                  <Text style={[s.codeText, { color: theme.primary }]}>{code}</Text>
                 </View>
                 {last && (
                   <View style={[s.scoreBadge, { backgroundColor: getScoreColor(last.percentage) + "22" }]}>
@@ -89,32 +107,29 @@ export default function HomeScreen() {
                 )}
               </View>
 
-              <Text style={s.title}>{item.title}</Text>
+              <Text style={[s.title, { color: theme.textPrimary }]}>{item.title}</Text>
 
               <View style={s.cardBottom}>
-                <Text style={s.meta}>الفصول: {chaptersCount}</Text>
-                <Text style={s.dot}>·</Text>
-                <Text style={s.meta}>الأسئلة: {questionsCount}</Text>
+                <Text style={[s.meta, { color: theme.textSecondary }]}>الفصول: {chaptersCount}</Text>
+                <Text style={[s.dot, { color: theme.secondary }]}>·</Text>
+                <Text style={[s.meta, { color: theme.textSecondary }]}>الأسئلة: {questionsCount}</Text>
                 {last && (
                   <>
-                    <Text style={s.dot}>·</Text>
-                    <Text style={s.meta}>المجاب: {last.total}</Text>
+                    <Text style={[s.dot, { color: theme.secondary }]}>·</Text>
+                    <Text style={[s.meta, { color: theme.textSecondary }]}>المجاب: {last.total}</Text>
                   </>
                 )}
               </View>
 
               {last && (
-                <View style={s.progressBg}>
+                <View style={[s.progressBg, { backgroundColor: theme.secondary + "44" }]}>
                   <View
-                    style={[
-                      s.progressFill,
-                      { width: `${last.percentage}%`, backgroundColor: getScoreColor(last.percentage) },
-                    ]}
+                    style={[s.progressFill, { width: `${last.percentage}%`, backgroundColor: getScoreColor(last.percentage) }]}
                   />
                 </View>
               )}
 
-              <Text style={s.arrow}>←</Text>
+              <Text style={[s.arrow, { color: theme.textSecondary }]}>←</Text>
             </TouchableOpacity>
           );
         }}
@@ -124,21 +139,22 @@ export default function HomeScreen() {
 }
 
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background, padding: 16, paddingTop: 60 },
-  topRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 20 },
-  header: { fontSize: 24, fontWeight: "bold", color: Colors.text },
-  subtitle: { color: Colors.textMuted, fontSize: 13 },
-  card: { backgroundColor: Colors.card, borderRadius: 16, padding: 16, marginBottom: 14, borderWidth: 1, borderColor: Colors.border },
-  cardTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 },
-  codeBadge: { backgroundColor: Colors.primary + "22", borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 },
-  codeText: { color: Colors.primary, fontWeight: "bold", fontSize: 13 },
-  scoreBadge: { borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 },
-  scoreText: { fontWeight: "bold", fontSize: 12 },
-  title: { color: Colors.text, fontSize: 17, fontWeight: "bold", textAlign: "right", marginBottom: 10 },
-  cardBottom: { flexDirection: "row", justifyContent: "flex-end", alignItems: "center", gap: 6, marginBottom: 10 },
-  meta: { color: Colors.textMuted, fontSize: 12 },
-  dot: { color: Colors.border, fontSize: 12 },
-  progressBg: { height: 4, backgroundColor: Colors.border, borderRadius: 2, marginBottom: 8 },
+  container:    { flex: 1, padding: 16, paddingTop: 60 },
+  topRow:       { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 20 },
+  switchRow:    { flexDirection: "row", alignItems: "center" },
+  header:       { fontSize: 24, fontWeight: "bold" },
+  subtitle:     { fontSize: 13, marginTop: 2 },
+  card:         { borderRadius: 16, padding: 16, marginBottom: 14, borderWidth: 1 },
+  cardTop:      { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 },
+  codeBadge:    { borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 },
+  codeText:     { fontWeight: "bold", fontSize: 13 },
+  scoreBadge:   { borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 },
+  scoreText:    { fontWeight: "bold", fontSize: 12 },
+  title:        { fontSize: 17, fontWeight: "bold", textAlign: "right", marginBottom: 10 },
+  cardBottom:   { flexDirection: "row", justifyContent: "flex-end", alignItems: "center", gap: 6, marginBottom: 10 },
+  meta:         { fontSize: 12 },
+  dot:          { fontSize: 12 },
+  progressBg:   { height: 4, borderRadius: 2, marginBottom: 8 },
   progressFill: { height: 4, borderRadius: 2 },
-  arrow: { position: "absolute", left: 16, top: "50%", color: Colors.textMuted, fontSize: 18 },
+  arrow:        { position: "absolute", left: 16, top: "50%", fontSize: 18 },
 });

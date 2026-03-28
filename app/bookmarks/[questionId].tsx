@@ -1,6 +1,6 @@
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
-import { Colors } from "../../constants/colors";
+import { useTheme } from "../../utils/ThemeContext";
 import index from "../../data/subjects/index.json";
 import aiData from "../../data/subjects/ai_data.json";
 import cnData from "../../data/subjects/cn_data.json";
@@ -26,43 +26,32 @@ const SUBJECTS = index.subjects.reduce<Record<string, Subject>>((acc, subject) =
   return acc;
 }, {});
 
-function getQuestionText(question: any) {
-  return question.text ?? question.text_en ?? "";
-}
-
-function getQuestionOptions(question: any): string[] {
-  return question.options ?? question.options_en ?? [];
-}
-
-function getQuestionExplanation(question: any) {
-  return question.explanation ?? question.explanation_en ?? "";
-}
+function getQuestionText(question: any) { return question.text ?? question.text_en ?? ""; }
+function getQuestionOptions(question: any): string[] { return question.options ?? question.options_en ?? []; }
+function getQuestionExplanation(question: any) { return question.explanation ?? question.explanation_en ?? ""; }
 
 function findQuestionDetails(subjectId: string, questionId: string) {
   const subject = SUBJECTS[subjectId];
   if (!subject) return null;
-
-  for (const chapter of subject.chapters) {
-    for (const topic of chapter.topics) {
-      for (const question of topic.questions) {
-        if (question.id === questionId) {
+  for (const chapter of subject.chapters)
+    for (const topic of chapter.topics)
+      for (const question of topic.questions)
+        if (question.id === questionId)
           return { subject, chapter, topic, question };
-        }
-      }
-    }
-  }
-
   return null;
 }
 
 export default function BookmarkDetailsScreen() {
+  const { theme } = useTheme();
   const params = useLocalSearchParams<{ questionId: string; subjectId: string }>();
   const details = findQuestionDetails(params.subjectId ?? "", params.questionId ?? "");
 
   if (!details) {
     return (
-      <View style={s.center}>
-        <Text style={s.errorText}>تعذر العثور على السؤال المحفوظ</Text>
+      <View style={[s.center, { backgroundColor: theme.background }]}>
+        <Text style={{ color: theme.wrong, fontSize: 16, textAlign: "center" }}>
+          تعذر العثور على السؤال المحفوظ
+        </Text>
       </View>
     );
   }
@@ -72,109 +61,69 @@ export default function BookmarkDetailsScreen() {
   const correctAnswer = options[question.answer] ?? "";
 
   return (
-    <ScrollView style={s.container} contentContainerStyle={s.content}>
-      <View style={s.metaCard}>
-        <Text style={s.metaLabel}>المادة</Text>
-        <Text style={s.metaValue}>{subject.title}</Text>
+    <ScrollView style={{ flex: 1, backgroundColor: theme.background }} contentContainerStyle={s.content}>
 
-        <Text style={s.metaLabel}>الفصل</Text>
-        <Text style={s.metaValue}>{chapter.title}</Text>
-
-        <Text style={s.metaLabel}>الموضوع</Text>
-        <Text style={s.metaValue}>{topic.title}</Text>
+      <View style={[s.card, { backgroundColor: theme.card, borderColor: theme.secondary + "44" }]}>
+        <Text style={[s.metaLabel, { color: theme.textSecondary }]}>المادة</Text>
+        <Text style={[s.metaValue, { color: theme.textPrimary }]}>{subject.title}</Text>
+        <Text style={[s.metaLabel, { color: theme.textSecondary }]}>الفصل</Text>
+        <Text style={[s.metaValue, { color: theme.textPrimary }]}>{chapter.title}</Text>
+        <Text style={[s.metaLabel, { color: theme.textSecondary }]}>الموضوع</Text>
+        <Text style={[s.metaValue, { color: theme.textPrimary }]}>{topic.title}</Text>
       </View>
 
-      <View style={s.sectionCard}>
-        <Text style={s.sectionTitle}>نص السؤال</Text>
-        <Text style={s.questionText}>{getQuestionText(question)}</Text>
+      <View style={[s.card, { backgroundColor: theme.card, borderColor: theme.secondary + "44" }]}>
+        <Text style={[s.sectionTitle, { color: theme.primary }]}>نص السؤال</Text>
+        <Text style={{ color: theme.textPrimary, fontSize: 16, lineHeight: 26, textAlign: "right" }}>
+          {getQuestionText(question)}
+        </Text>
       </View>
 
-      <View style={s.sectionCard}>
-        <Text style={s.sectionTitle}>الخيارات</Text>
-        {options.map((option: string, indexValue: number) => (
+      <View style={[s.card, { backgroundColor: theme.card, borderColor: theme.secondary + "44" }]}>
+        <Text style={[s.sectionTitle, { color: theme.primary }]}>الخيارات</Text>
+        {options.map((option: string, i: number) => (
           <View
-            key={indexValue}
-            style={[s.option, indexValue === question.answer && s.correctOption]}
+            key={i}
+            style={[
+              s.option,
+              { backgroundColor: theme.background },
+              i === question.answer && { backgroundColor: theme.correct + "22", borderWidth: 1, borderColor: theme.correct },
+            ]}
           >
-            <Text style={s.optionLetter}>{["أ", "ب", "ج", "د"][indexValue] ?? "-"}</Text>
-            <Text style={[s.optionText, indexValue === question.answer && s.correctText]}>
+            <Text style={{ color: theme.textSecondary, fontWeight: "bold", width: 20, textAlign: "center" }}>
+              {["أ", "ب", "ج", "د"][i] ?? "-"}
+            </Text>
+            <Text style={{ color: i === question.answer ? theme.correct : theme.textPrimary, fontSize: 14, flex: 1, textAlign: "right", fontWeight: i === question.answer ? "bold" : "normal" }}>
               {option}
             </Text>
           </View>
         ))}
       </View>
 
-      <View style={s.sectionCard}>
-        <Text style={s.sectionTitle}>الإجابة الصحيحة</Text>
-        <Text style={s.answerText}>{correctAnswer}</Text>
+      <View style={[s.card, { backgroundColor: theme.card, borderColor: theme.secondary + "44" }]}>
+        <Text style={[s.sectionTitle, { color: theme.primary }]}>الإجابة الصحيحة</Text>
+        <Text style={{ color: theme.correct, fontSize: 15, fontWeight: "bold", textAlign: "right" }}>
+          {correctAnswer}
+        </Text>
       </View>
 
-      <View style={s.sectionCard}>
-        <Text style={s.sectionTitle}>الشرح</Text>
-        <Text style={s.explanationText}>{getQuestionExplanation(question) || "لا يوجد شرح."}</Text>
+      <View style={[s.card, { backgroundColor: theme.card, borderColor: theme.secondary + "44" }]}>
+        <Text style={[s.sectionTitle, { color: theme.primary }]}>الشرح</Text>
+        <Text style={{ color: theme.textPrimary, fontSize: 14, lineHeight: 24, textAlign: "right" }}>
+          {getQuestionExplanation(question) || "لا يوجد شرح."}
+        </Text>
       </View>
+
     </ScrollView>
   );
 }
 
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  content: { padding: 16, paddingBottom: 40, gap: 12 },
-  center: {
-    flex: 1,
-    backgroundColor: Colors.background,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 24,
-  },
-  errorText: { color: Colors.wrong, fontSize: 16, textAlign: "center" },
-  metaCard: {
-    backgroundColor: Colors.card,
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  metaLabel: { color: Colors.textMuted, fontSize: 12, textAlign: "right", marginBottom: 4 },
-  metaValue: {
-    color: Colors.text,
-    fontSize: 15,
-    fontWeight: "600",
-    textAlign: "right",
-    marginBottom: 10,
-  },
-  sectionCard: {
-    backgroundColor: Colors.card,
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  sectionTitle: {
-    color: Colors.primary,
-    fontSize: 14,
-    fontWeight: "bold",
-    textAlign: "right",
-    marginBottom: 10,
-  },
-  questionText: { color: Colors.text, fontSize: 16, lineHeight: 26, textAlign: "right" },
-  option: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    padding: 12,
-    borderRadius: 10,
-    marginBottom: 8,
-    backgroundColor: Colors.surface,
-  },
-  correctOption: {
-    backgroundColor: Colors.correct + "22",
-    borderWidth: 1,
-    borderColor: Colors.correct,
-  },
-  optionLetter: { color: Colors.textMuted, fontWeight: "bold", width: 20, textAlign: "center" },
-  optionText: { color: Colors.text, fontSize: 14, flex: 1, textAlign: "right" },
-  correctText: { color: Colors.correct, fontWeight: "bold" },
-  answerText: { color: Colors.correct, fontSize: 15, fontWeight: "bold", textAlign: "right" },
-  explanationText: { color: Colors.text, fontSize: 14, lineHeight: 24, textAlign: "right" },
+  content:      { padding: 16, paddingBottom: 40, gap: 12 },
+  center:       { flex: 1, justifyContent: "center", alignItems: "center", padding: 24 },
+  card:         { borderRadius: 12, padding: 16, borderWidth: 1 },
+  metaLabel:    { fontSize: 12, textAlign: "right", marginBottom: 4 },
+  metaValue:    { fontSize: 15, fontWeight: "600", textAlign: "right", marginBottom: 10 },
+  sectionTitle: { fontSize: 14, fontWeight: "bold", textAlign: "right", marginBottom: 10 },
+  option:       { flexDirection: "row", alignItems: "center", gap: 10, padding: 12, borderRadius: 10, marginBottom: 8 },
 });

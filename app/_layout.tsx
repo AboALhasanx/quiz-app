@@ -4,18 +4,24 @@ import { StatusBar } from "expo-status-bar";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "../utils/firebase";
 import { View, ActivityIndicator } from "react-native";
-import { DarkTheme, ThemeProvider } from "@react-navigation/native";
+import { DarkTheme, DefaultTheme, ThemeProvider as NavThemeProvider } from "@react-navigation/native";
 import * as SystemUI from "expo-system-ui";
+import { AppThemeProvider, useTheme } from "../utils/ThemeContext";
 
-const AppTheme = {
-  ...DarkTheme,
-  colors: { ...DarkTheme.colors, background: "#0f0f13", card: "#0f0f13" },
-};
-
-export default function RootLayout() {
+function AppContent() {
+  const { isDark, theme } = useTheme();
   const [checking, setChecking] = useState(true);
 
-  SystemUI.setBackgroundColorAsync("#0f0f13");
+  SystemUI.setBackgroundColorAsync(theme.background);
+
+  const NavTheme = {
+    ...(isDark ? DarkTheme : DefaultTheme),
+    colors: {
+      ...(isDark ? DarkTheme.colors : DefaultTheme.colors),
+      background: theme.background,
+      card: theme.card,
+    },
+  };
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (user) => {
@@ -31,20 +37,20 @@ export default function RootLayout() {
 
   if (checking) {
     return (
-      <View style={{ flex: 1, backgroundColor: "#0f0f13", justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator color="#6366f1" size="large" />
+      <View style={{ flex: 1, backgroundColor: theme.background, justifyContent: "center", alignItems: "center" }}>
+        <ActivityIndicator color={theme.primary} size="large" />
       </View>
     );
   }
 
   return (
-    <ThemeProvider value={AppTheme}>
-      <StatusBar style="light" />
+    <NavThemeProvider value={NavTheme}>
+      <StatusBar style={isDark ? "light" : "dark"} />
       <Stack
         screenOptions={{
-          headerStyle:     { backgroundColor: "#0f0f13" },
-          headerTintColor: "#f1f5f9",
-          contentStyle:    { backgroundColor: "#0f0f13" },
+          headerStyle:     { backgroundColor: theme.card },
+          headerTintColor: theme.textPrimary,
+          contentStyle:    { backgroundColor: theme.background },
           animation:       "fade",
         }}
       >
@@ -57,6 +63,14 @@ export default function RootLayout() {
         <Stack.Screen name="quiz/play"              options={{ headerShown: false }} />
         <Stack.Screen name="quiz/result"            options={{ title: "النتيجة" }} />
       </Stack>
-    </ThemeProvider>
+    </NavThemeProvider>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <AppThemeProvider>
+      <AppContent />
+    </AppThemeProvider>
   );
 }

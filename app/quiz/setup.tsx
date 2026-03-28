@@ -1,7 +1,7 @@
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Switch } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
-import { Colors } from "../../constants/colors";
+import { useTheme } from "../../utils/ThemeContext";
 import index from "../../data/subjects/index.json";
 import aiData from "../../data/subjects/ai_data.json";
 import cnData from "../../data/subjects/cn_data.json";
@@ -34,12 +34,9 @@ function getSelectedQuestionCount(total: number, percentage: number) {
 }
 
 export default function QuizSetupScreen() {
+  const { theme } = useTheme();
   const params = useLocalSearchParams<{
-    scope: string;
-    subjectId: string;
-    chapterId: string;
-    topicId: string;
-    percentage?: string;
+    scope: string; subjectId: string; chapterId: string; topicId: string; percentage?: string;
   }>();
   const router = useRouter();
 
@@ -55,33 +52,17 @@ export default function QuizSetupScreen() {
   let questions: any[] = [];
 
   if (subject) {
-    const chapters = params.chapterId
-      ? subject.chapters.filter((chapter: any) => chapter.id === params.chapterId)
-      : subject.chapters;
-
+    const chapters = params.chapterId ? subject.chapters.filter((c: any) => c.id === params.chapterId) : subject.chapters;
     chapters.forEach((chapter: any) => {
-      const topics = params.topicId
-        ? chapter.topics.filter((topic: any) => topic.id === params.topicId)
-        : chapter.topics;
-
+      const topics = params.topicId ? chapter.topics.filter((t: any) => t.id === params.topicId) : chapter.topics;
       topics.forEach((topic: any) => questions.push(...topic.questions));
     });
   }
 
   const percentageOptions = Array.from({ length: 10 }, (_, i) => (i + 1) * 10);
   const selectedQuestionCount = getSelectedQuestionCount(questions.length, percentage);
-
-  const scopeLabel = params.topicId
-    ? "كوز موضوع"
-    : params.chapterId
-      ? "كوز فصل"
-      : "كوز المادة الكامل";
-
-  const scopeIcon = params.topicId
-    ? "document-text-outline"
-    : params.chapterId
-      ? "library-outline"
-      : "school-outline";
+  const scopeLabel = params.topicId ? "كوز موضوع" : params.chapterId ? "كوز فصل" : "كوز المادة الكامل";
+  const scopeIcon = params.topicId ? "document-text-outline" : params.chapterId ? "library-outline" : "school-outline";
 
   const startQuiz = () => {
     const searchParams = new URLSearchParams({
@@ -89,79 +70,76 @@ export default function QuizSetupScreen() {
       subjectId: params.subjectId ?? "",
       chapterId: params.chapterId ?? "",
       topicId: params.topicId ?? "",
-      mode,
-      order,
+      mode, order,
       hardMode: hardMode ? "1" : "0",
       percentage: percentage.toString(),
     });
-
     router.push(`/quiz/play?${searchParams.toString()}` as any);
   };
 
   return (
-    <ScrollView style={s.container} contentContainerStyle={s.content}>
-      <View style={s.headerBox}>
-        <View style={s.headerIcon}>
-          <Ionicons name={scopeIcon as any} size={28} color={Colors.primary} />
-        </View>
-        <Text style={s.scopeLabel}>{scopeLabel}</Text>
-        <Text style={s.questionCount}>{selectedQuestionCount}</Text>
-        <Text style={s.questionLabel}>سؤال</Text>
+    <ScrollView style={{ flex: 1, backgroundColor: theme.background }} contentContainerStyle={s.content}>
 
+      {/* Header */}
+      <View style={[s.headerBox, { backgroundColor: theme.card, borderColor: theme.secondary + "44" }]}>
+        <View style={[s.headerIcon, { backgroundColor: theme.primary + "22" }]}>
+          <Ionicons name={scopeIcon as any} size={28} color={theme.primary} />
+        </View>
+        <Text style={{ color: theme.textSecondary, fontSize: 13, marginBottom: 6 }}>{scopeLabel}</Text>
+        <Text style={{ color: theme.primary, fontSize: 48, fontWeight: "bold", lineHeight: 54 }}>{selectedQuestionCount}</Text>
+        <Text style={{ color: theme.textSecondary, fontSize: 14, marginBottom: 14 }}>سؤال</Text>
         <View style={s.headerStats}>
           <View style={s.headerStat}>
-            <Ionicons name="time-outline" size={14} color={Colors.textMuted} />
-            <Text style={s.headerStatText}>~{Math.ceil(selectedQuestionCount * 1.5)} دقيقة</Text>
+            <Ionicons name="time-outline" size={14} color={theme.textSecondary} />
+            <Text style={{ color: theme.textSecondary, fontSize: 12 }}>~{Math.ceil(selectedQuestionCount * 1.5)} دقيقة</Text>
           </View>
-          <View style={s.statDivider} />
+          <View style={[s.statDivider, { backgroundColor: theme.secondary + "44" }]} />
           <View style={s.headerStat}>
-            <Ionicons name="trophy-outline" size={14} color={Colors.textMuted} />
-            <Text style={s.headerStatText}>70% للنجاح</Text>
+            <Ionicons name="trophy-outline" size={14} color={theme.textSecondary} />
+            <Text style={{ color: theme.textSecondary, fontSize: 12 }}>70% للنجاح</Text>
           </View>
         </View>
       </View>
 
-      <Text style={s.sectionTitle}>نوع الكوز</Text>
+      {/* نوع الكوز */}
+      <Text style={{ color: theme.textSecondary, fontSize: 13, marginBottom: 8, marginTop: 16, textAlign: "right" }}>نوع الكوز</Text>
       <View style={s.row}>
-        <TouchableOpacity
-          style={[s.modeBtn, mode === "paper" && s.modeBtnActive]}
-          onPress={() => setMode("paper")}
-        >
-          {mode === "paper" && <View style={s.activeIndicator} />}
-          <Text style={s.modeIcon}>📄</Text>
-          <Text style={[s.modeBtnText, mode === "paper" && s.modeBtnTextActive]}>Paper</Text>
-          <Text style={s.modeDesc}>تجاوب الكل{"\n"}ثم تشوف النتيجة</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[s.modeBtn, mode === "recitation" && s.modeBtnActive]}
-          onPress={() => setMode("recitation")}
-        >
-          {mode === "recitation" && <View style={s.activeIndicator} />}
-          <Text style={s.modeIcon}>⚡</Text>
-          <Text style={[s.modeBtnText, mode === "recitation" && s.modeBtnTextActive]}>
-            Recitation
-          </Text>
-          <Text style={s.modeDesc}>كشف فوري{"\n"}بعد كل سؤال</Text>
-        </TouchableOpacity>
+        {(["paper", "recitation"] as const).map((m) => (
+          <TouchableOpacity
+            key={m}
+            style={[s.modeBtn, { backgroundColor: theme.card, borderColor: mode === m ? theme.primary : theme.secondary + "44" }, mode === m && { backgroundColor: theme.primary + "15" }]}
+            onPress={() => setMode(m)}
+          >
+            {mode === m && <View style={[s.activeIndicator, { backgroundColor: theme.primary }]} />}
+            <Text style={{ fontSize: 26, marginBottom: 6 }}>{m === "paper" ? "📄" : "⚡"}</Text>
+            <Text style={{ color: mode === m ? theme.primary : theme.textSecondary, fontWeight: "bold", fontSize: 14, marginBottom: 4 }}>
+              {m === "paper" ? "Paper" : "Recitation"}
+            </Text>
+            <Text style={{ color: theme.textSecondary, fontSize: 11, textAlign: "center", lineHeight: 16 }}>
+              {m === "paper" ? "تجاوب الكل\nثم تشوف النتيجة" : "كشف فوري\nبعد كل سؤال"}
+            </Text>
+          </TouchableOpacity>
+        ))}
       </View>
 
-      <Text style={s.sectionTitle}>نسبة الأسئلة</Text>
+      {/* نسبة الأسئلة */}
+      <Text style={{ color: theme.textSecondary, fontSize: 13, marginBottom: 8, marginTop: 16, textAlign: "right" }}>نسبة الأسئلة</Text>
       <View style={s.percentageGrid}>
         {percentageOptions.map((value) => (
           <TouchableOpacity
             key={value}
-            style={[s.percentageBtn, percentage === value && s.optionBtnActive]}
+            style={[s.percentageBtn, { backgroundColor: theme.card, borderColor: percentage === value ? theme.primary : theme.secondary + "44" }, percentage === value && { backgroundColor: theme.primary + "15" }]}
             onPress={() => setPercentage(value)}
           >
-            <Text style={[s.optionBtnText, percentage === value && s.optionBtnTextActive]}>
+            <Text style={{ color: percentage === value ? theme.primary : theme.textSecondary, fontSize: 12, fontWeight: percentage === value ? "bold" : "normal" }}>
               {value}%
             </Text>
           </TouchableOpacity>
         ))}
       </View>
 
-      <Text style={s.sectionTitle}>ترتيب الأسئلة</Text>
+      {/* ترتيب الأسئلة */}
+      <Text style={{ color: theme.textSecondary, fontSize: 13, marginBottom: 8, marginTop: 16, textAlign: "right" }}>ترتيب الأسئلة</Text>
       <View style={s.row}>
         {([
           { value: "random", label: "عشوائي", icon: "shuffle-outline" },
@@ -169,157 +147,59 @@ export default function QuizSetupScreen() {
         ] as const).map((option) => (
           <TouchableOpacity
             key={option.value}
-            style={[s.orderBtn, order === option.value && s.optionBtnActive]}
+            style={[s.orderBtn, { backgroundColor: theme.card, borderColor: order === option.value ? theme.primary : theme.secondary + "44" }, order === option.value && { backgroundColor: theme.primary + "15" }]}
             onPress={() => setOrder(option.value)}
           >
-            <Ionicons
-              name={option.icon}
-              size={20}
-              color={order === option.value ? Colors.primary : Colors.textMuted}
-            />
-            <Text style={[s.optionBtnText, order === option.value && s.optionBtnTextActive]}>
+            <Ionicons name={option.icon} size={20} color={order === option.value ? theme.primary : theme.textSecondary} />
+            <Text style={{ color: order === option.value ? theme.primary : theme.textSecondary, fontSize: 12, fontWeight: order === option.value ? "bold" : "normal" }}>
               {option.label}
             </Text>
           </TouchableOpacity>
         ))}
       </View>
 
-      <View style={[s.hardModeRow, hardMode && s.hardModeActive]}>
+      {/* Hard Mode */}
+      <View style={[s.hardModeRow, { backgroundColor: hardMode ? theme.wrong + "11" : theme.card, borderColor: hardMode ? theme.wrong : theme.secondary + "44" }]}>
         <View style={s.hardModeInfo}>
-          <Text style={s.hardModeTitle}>⏱️ Hard Mode</Text>
-          <Text style={s.hardModeDesc}>دقيقة لكل سؤال - انتهاء الوقت يعني نهاية الكوز</Text>
+          <Text style={{ color: theme.textPrimary, fontWeight: "bold", fontSize: 15 }}>⏱️ Hard Mode</Text>
+          <Text style={{ color: theme.textSecondary, fontSize: 12, marginTop: 2 }}>دقيقة لكل سؤال - انتهاء الوقت يعني نهاية الكوز</Text>
           {hardMode && (
-            <Text style={s.hardModeWarning}>⚠️ الوقت الكلي: {selectedQuestionCount} دقيقة</Text>
+            <Text style={{ color: theme.wrong, fontSize: 11, marginTop: 4 }}>⚠️ الوقت الكلي: {selectedQuestionCount} دقيقة</Text>
           )}
         </View>
-
         <Switch
           value={hardMode}
           onValueChange={setHardMode}
-          trackColor={{ true: Colors.primary, false: Colors.border }}
-          thumbColor={hardMode ? "#fff" : Colors.textMuted}
+          trackColor={{ true: theme.primary, false: theme.secondary + "44" }}
+          thumbColor={hardMode ? "#fff" : theme.textSecondary}
         />
       </View>
 
-      <TouchableOpacity style={s.startBtn} onPress={startQuiz} activeOpacity={0.85}>
+      {/* Start Button */}
+      <TouchableOpacity style={[s.startBtn, { backgroundColor: theme.primary }]} onPress={startQuiz} activeOpacity={0.85}>
         <Ionicons name="rocket-outline" size={22} color="#fff" />
         <Text style={s.startBtnText}>ابدأ الكوز</Text>
       </TouchableOpacity>
+
     </ScrollView>
   );
 }
 
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  content: { padding: 16, paddingBottom: 50 },
-  headerBox: {
-    backgroundColor: Colors.card,
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 24,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    alignItems: "center",
-  },
-  headerIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: Colors.primary + "22",
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  scopeLabel: { color: Colors.textMuted, fontSize: 13, marginBottom: 6 },
-  questionCount: { color: Colors.primary, fontSize: 48, fontWeight: "bold", lineHeight: 54 },
-  questionLabel: { color: Colors.textMuted, fontSize: 14, marginBottom: 14 },
-  headerStats: { flexDirection: "row", alignItems: "center", gap: 16 },
-  headerStat: { flexDirection: "row", alignItems: "center", gap: 4 },
-  headerStatText: { color: Colors.textMuted, fontSize: 12 },
-  statDivider: { width: 1, height: 14, backgroundColor: Colors.border },
-  sectionTitle: {
-    color: Colors.textMuted,
-    fontSize: 13,
-    marginBottom: 8,
-    marginTop: 16,
-    textAlign: "right",
-  },
-  row: { flexDirection: "row", gap: 10 },
-  modeBtn: {
-    flex: 1,
-    backgroundColor: Colors.card,
-    borderRadius: 14,
-    padding: 16,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: Colors.border,
-    overflow: "hidden",
-  },
-  modeBtnActive: { borderColor: Colors.primary, backgroundColor: Colors.primary + "15" },
-  activeIndicator: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 3,
-    backgroundColor: Colors.primary,
-    borderRadius: 2,
-  },
-  modeIcon: { fontSize: 26, marginBottom: 6 },
-  modeBtnText: { color: Colors.textMuted, fontWeight: "bold", fontSize: 14, marginBottom: 4 },
-  modeBtnTextActive: { color: Colors.primary },
-  modeDesc: { color: Colors.textMuted, fontSize: 11, textAlign: "center", lineHeight: 16 },
+  content:        { padding: 16, paddingBottom: 50 },
+  headerBox:      { borderRadius: 16, padding: 20, marginBottom: 24, borderWidth: 1, alignItems: "center" },
+  headerIcon:     { width: 56, height: 56, borderRadius: 28, justifyContent: "center", alignItems: "center", marginBottom: 8 },
+  headerStats:    { flexDirection: "row", alignItems: "center", gap: 16 },
+  headerStat:     { flexDirection: "row", alignItems: "center", gap: 4 },
+  statDivider:    { width: 1, height: 14 },
+  row:            { flexDirection: "row", gap: 10 },
+  modeBtn:        { flex: 1, borderRadius: 14, padding: 16, alignItems: "center", borderWidth: 1, overflow: "hidden" },
+  activeIndicator: { position: "absolute", top: 0, left: 0, right: 0, height: 3, borderRadius: 2 },
   percentageGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
-  percentageBtn: {
-    width: "18%",
-    minWidth: 60,
-    backgroundColor: Colors.card,
-    borderRadius: 12,
-    paddingVertical: 12,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  optionBtnActive: { borderColor: Colors.primary, backgroundColor: Colors.primary + "15" },
-  optionBtnText: { color: Colors.textMuted, fontSize: 12 },
-  optionBtnTextActive: { color: Colors.primary, fontWeight: "bold" },
-  orderBtn: {
-    flex: 1,
-    backgroundColor: Colors.card,
-    borderRadius: 12,
-    padding: 14,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: Colors.border,
-    flexDirection: "row",
-    justifyContent: "center",
-    gap: 8,
-  },
-  hardModeRow: {
-    backgroundColor: Colors.card,
-    borderRadius: 14,
-    padding: 16,
-    marginTop: 20,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  hardModeActive: { borderColor: Colors.wrong, backgroundColor: Colors.wrong + "11" },
-  hardModeInfo: { flex: 1, alignItems: "flex-end" },
-  hardModeTitle: { color: Colors.text, fontWeight: "bold", fontSize: 15 },
-  hardModeDesc: { color: Colors.textMuted, fontSize: 12, marginTop: 2 },
-  hardModeWarning: { color: Colors.wrong, fontSize: 11, marginTop: 4 },
-  startBtn: {
-    backgroundColor: Colors.primary,
-    borderRadius: 14,
-    padding: 18,
-    alignItems: "center",
-    marginTop: 28,
-    flexDirection: "row",
-    justifyContent: "center",
-    gap: 10,
-  },
-  startBtnText: { color: "#fff", fontSize: 18, fontWeight: "bold" },
+  percentageBtn:  { width: "18%", minWidth: 60, borderRadius: 12, paddingVertical: 12, alignItems: "center", borderWidth: 1 },
+  orderBtn:       { flex: 1, borderRadius: 12, padding: 14, alignItems: "center", borderWidth: 1, flexDirection: "row", justifyContent: "center", gap: 8 },
+  hardModeRow:    { borderRadius: 14, padding: 16, marginTop: 20, borderWidth: 1, flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  hardModeInfo:   { flex: 1, alignItems: "flex-end" },
+  startBtn:       { borderRadius: 14, padding: 18, alignItems: "center", marginTop: 28, flexDirection: "row", justifyContent: "center", gap: 10 },
+  startBtnText:   { color: "#fff", fontSize: 18, fontWeight: "bold" },
 });
