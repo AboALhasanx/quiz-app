@@ -11,6 +11,7 @@ import osData from "../../data/subjects/os_data.json";
 import seData from "../../data/subjects/se_data.json";
 import { saveBookmark, removeBookmark, isBookmarked, saveSession, getSession, clearSession } from "../../utils/storage";
 import { Ionicons } from "@expo/vector-icons";
+import { playCorrect, playWrong } from "../../utils/sounds";
 
 type Subject = any;
 
@@ -51,13 +52,20 @@ function getQuestionExplanation(question: any, lang = "ar"): string {
 }
 
 function shuffleOptions(question: any, lang: string) {
-  const correctText = getQuestionOptions(question, lang)[question.answer];
-  const options = [...getQuestionOptions(question, lang)];
-  for (let i = options.length - 1; i > 0; i--) {
+  const arOptions = question.options    ?? question.options_en ?? [];
+  const enOptions = question.options_en ?? question.options    ?? [];
+
+  const indices = arOptions.map((_: any, i: number) => i);
+  for (let i = indices.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    [options[i], options[j]] = [options[j], options[i]];
+    [indices[i], indices[j]] = [indices[j], indices[i]];
   }
-  return { ...question, options, correctText };
+
+  const shuffledAr = indices.map((i: number) => arOptions[i]);
+  const shuffledEn = indices.map((i: number) => enOptions[i]);
+  const correctText = arOptions[question.answer];
+
+  return { ...question, options: shuffledAr, options_en: shuffledEn, correctText };
 }
 
 function getSelectedQuestionCount(total: number, percentage: number) {
@@ -66,7 +74,7 @@ function getSelectedQuestionCount(total: number, percentage: number) {
 }
 
 export default function QuizPlayScreen() {
-  const { theme } = useTheme();
+  const { theme, isDark, toggle } = useTheme();
   const params = useLocalSearchParams<{
     scope?: string; subjectId: string; chapterId: string; topicId: string;
     mode: string; order: string; hardMode: string; percentage?: string;
@@ -208,14 +216,19 @@ export default function QuizPlayScreen() {
     else { await saveBookmark(q.id, params.subjectId ?? ""); setBookmarked(true); }
   };
 
-  const handleAnswer = (optionIndex: number) => {
-    if (!q) return;
-    if (mode === "recitation" && revealed) return;
-    const newAnswers = { ...answersRef.current, [q.id]: q.options[optionIndex] };
-    answersRef.current = newAnswers;
-    setAnswers(newAnswers);
-    if (mode === "recitation") setRevealed(true);
-  };
+const handleAnswer = (optionIndex: number) => {
+  if (!q) return;
+  if (mode === "recitation" && revealed) return;
+  const newAnswers = { ...answersRef.current, [q.id]: q.options[optionIndex] };
+  answersRef.current = newAnswers;
+  setAnswers(newAnswers);
+  if (mode === "recitation") {
+    setRevealed(true);
+    const isCorrect = q.options[optionIndex] === q.correctText;
+    if (isCorrect) playCorrect();
+    else playWrong();
+  }
+};
 
   const nextQuestion = () => {
     if (current + 1 >= questions.length) finishQuiz();
@@ -270,6 +283,7 @@ export default function QuizPlayScreen() {
   return (
     <View style={[s.container, { backgroundColor: theme.background }]}>
 
+      {/* ── Header ── */}
       <View style={s.header}>
         <TouchableOpacity
           onPress={() => Alert.alert("خروج من الكوز", "لو خرجت الحين راح يتحفظ تقدمك وتقدر تكمل لاحقاً", [
@@ -294,28 +308,47 @@ export default function QuizPlayScreen() {
             style={[s.langToggle, { backgroundColor: theme.card, borderColor: theme.secondary + "44" }]}
             onPress={() => setLang(l => l === "ar" ? "en" : "ar")}
           >
-            <Text style={{ color: theme.primary, fontWeight: "600", fontSize: 14 }}>{lang === "ar" ? "EN" : "AR"}</Text>
+            <Text style={{ color: theme.buttonText, fontWeight: "600", fontSize: 14 }}>{lang === "ar" ? "EN" : "AR"}</Text>
           </TouchableOpacity>
         )}
       </View>
 
+      {/* ── Progress ── */}
       <View style={[s.progressBg, { backgroundColor: theme.secondary + "44" }]}>
         <View style={[s.progressFill, { width: `${progress * 100}%`, backgroundColor: theme.primary }]} />
       </View>
 
       <ScrollView style={s.scroll} contentContainerStyle={s.scrollContent}>
 
-        <TouchableOpacity style={s.bookmarkBtn} onPress={toggleBookmark}>
-          <Ionicons name={bookmarked ? "bookmark" : "bookmark-outline"} size={22} color={bookmarked ? theme.primary : theme.textSecondary} />
-          <Text style={{ color: bookmarked ? theme.primary : theme.textSecondary, fontSize: 13 }}>
-            {bookmarked ? "محفوظ" : "احفظ السؤال"}
-          </Text>
-        </TouchableOpacity>
+        {/* ── صف الثيم + الحفظ ── */}
+        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
 
+          {/* زر الثيم — يسار */}
+          <TouchableOpacity
+            onPress={toggle}
+            style={[s.langToggle, { backgroundColor: theme.card, borderColor: theme.secondary + "44" }]}
+          >
+            <Text style={{ color: theme.buttonText, fontWeight: "600", fontSize: 14 }}>
+              {isDark ? "نهار" : "ليل"}
+            </Text>
+          </TouchableOpacity>
+
+          {/* زر الحفظ — يمين */}
+          <TouchableOpacity style={{ flexDirection: "row", alignItems: "center", gap: 6, padding: 6 }} onPress={toggleBookmark}>
+            <Ionicons name={bookmarked ? "bookmark" : "bookmark-outline"} size={22} color={bookmarked ? theme.primary : theme.textSecondary} />
+            <Text style={{ color: bookmarked ? theme.primary : theme.textSecondary, fontSize: 13 }}>
+              {bookmarked ? "محفوظ" : "احفظ السؤال"}
+            </Text>
+          </TouchableOpacity>
+
+        </View>
+
+        {/* ── نص السؤال ── */}
         <Text style={{ color: theme.textPrimary, fontSize: 17, fontWeight: "600", textAlign: "right", lineHeight: 26, marginBottom: 20, marginTop: 8 }}>
           {getQuestionText(q, lang)}
         </Text>
 
+        {/* ── الخيارات ── */}
         {q.options.map((_: string, i: number) => (
           <Pressable key={i} style={getOptionStyle(i)} onPress={() => handleAnswer(i)}>
             <Text style={{ color: theme.textSecondary, fontWeight: "bold", fontSize: 15, width: 24, textAlign: "center" }}>
@@ -327,6 +360,7 @@ export default function QuizPlayScreen() {
           </Pressable>
         ))}
 
+        {/* ── Recitation feedback ── */}
         {mode === "recitation" && revealed && (
           <View style={s.feedbackBox}>
             <Text style={{ fontSize: 16, fontWeight: "bold", color: chosenText === q.correctText ? theme.correct : theme.wrong }}>
@@ -350,6 +384,7 @@ export default function QuizPlayScreen() {
           </View>
         )}
 
+        {/* ── Paper next ── */}
         {mode === "paper" && chosenText !== undefined && (
           <TouchableOpacity style={[s.nextBtn, { backgroundColor: theme.primary }]} onPress={nextQuestion}>
             <Text style={s.nextBtnText}>{current + 1 >= questions.length ? "🏁 إنهاء وعرض النتيجة" : "التالي ←"}</Text>
@@ -370,7 +405,6 @@ const s = StyleSheet.create({
   progressFill:   { height: 4, borderRadius: 2 },
   scroll:         { flex: 1 },
   scrollContent:  { padding: 16, paddingBottom: 40 },
-  bookmarkBtn:    { flexDirection: "row", alignItems: "center", gap: 6, alignSelf: "flex-end", marginBottom: 8, padding: 6 },
   option:         { borderRadius: 12, padding: 14, marginBottom: 10, borderWidth: 1, flexDirection: "row", alignItems: "center", gap: 12 },
   optionText:     { fontSize: 14, flex: 1, textAlign: "right" },
   feedbackBox:    { marginTop: 10, alignItems: "center", gap: 12 },
