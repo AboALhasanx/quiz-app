@@ -1,7 +1,13 @@
 import { useState, useCallback } from "react";
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
-import { removeBookmark, clearBookmarks, getBookmarks, mergeBookmarksFromRemote, Bookmark } from "../../utils/storage";
+import {
+  removeBookmark,
+  clearBookmarks,
+  getBookmarks,
+  mergeBookmarksFromRemote,
+  Bookmark,
+} from "../../utils/storage";
 import index from "../../data/subjects/index.json";
 import aiData from "../../data/subjects/ai_data.json";
 import cnData from "../../data/subjects/cn_data.json";
@@ -9,7 +15,12 @@ import dsData from "../../data/subjects/ds_data.json";
 import oopData from "../../data/subjects/oop_data.json";
 import osData from "../../data/subjects/os_data.json";
 import seData from "../../data/subjects/se_data.json";
-import { fetchBookmarksFromFirestore, deleteBookmarkFromFirestore, flushSyncQueue, getCurrentUser } from "../../utils/firebase";
+import {
+  fetchBookmarksFromFirestore,
+  deleteBookmarkFromFirestore,
+  flushSyncQueue,
+  getCurrentUser,
+} from "../../utils/firebase";
 import { useTheme } from "../../utils/ThemeContext";
 
 type Subject = any;
@@ -40,6 +51,7 @@ function getQuestionOptions(question: any): string[] {
 function findQuestionDetails(subjectId: string, questionId: string) {
   const subject = SUBJECTS[subjectId];
   if (!subject) return null;
+
   for (const chapter of subject.chapters) {
     for (const topic of chapter.topics) {
       for (const question of topic.questions) {
@@ -49,6 +61,7 @@ function findQuestionDetails(subjectId: string, questionId: string) {
       }
     }
   }
+
   return null;
 }
 
@@ -56,6 +69,7 @@ export default function BookmarksScreen() {
   const router = useRouter();
   const { theme } = useTheme();
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
+  const [selectedSubjectId, setSelectedSubjectId] = useState("all");
   const [refreshing, setRefreshing] = useState(false);
 
   const load = async () => {
@@ -73,7 +87,11 @@ export default function BookmarksScreen() {
     }
   };
 
-  useFocusEffect(useCallback(() => { load(); }, []));
+  useFocusEffect(
+    useCallback(() => {
+      void load();
+    }, [])
+  );
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -83,7 +101,7 @@ export default function BookmarksScreen() {
 
   const handleRemove = async (questionId: string) => {
     await removeBookmark(questionId);
-    setBookmarks((prev) => prev.filter((bookmark) => bookmark.questionId !== questionId));
+    setBookmarks((previous) => previous.filter((bookmark) => bookmark.questionId !== questionId));
   };
 
   const handleClearAll = async () => {
@@ -93,6 +111,11 @@ export default function BookmarksScreen() {
     }
     setBookmarks([]);
   };
+
+  const filteredBookmarks =
+    selectedSubjectId === "all"
+      ? bookmarks
+      : bookmarks.filter((bookmark) => bookmark.subjectId === selectedSubjectId);
 
   return (
     <ScrollView
@@ -109,7 +132,47 @@ export default function BookmarksScreen() {
         )}
       </View>
 
-      {bookmarks.length === 0 ? (
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.filterRow}>
+        <TouchableOpacity
+          style={[
+            s.filterChip,
+            {
+              backgroundColor: selectedSubjectId === "all" ? theme.primary + "22" : theme.card,
+              borderColor: selectedSubjectId === "all" ? theme.primary : theme.secondary + "44",
+            },
+          ]}
+          onPress={() => setSelectedSubjectId("all")}
+        >
+          <Text style={{ color: selectedSubjectId === "all" ? theme.primary : theme.textSecondary, fontSize: 12 }}>
+            كل المواد
+          </Text>
+        </TouchableOpacity>
+
+        {index.subjects.map((subject) => (
+          <TouchableOpacity
+            key={subject.id}
+            style={[
+              s.filterChip,
+              {
+                backgroundColor: selectedSubjectId === subject.id ? theme.primary + "22" : theme.card,
+                borderColor: selectedSubjectId === subject.id ? theme.primary : theme.secondary + "44",
+              },
+            ]}
+            onPress={() => setSelectedSubjectId(subject.id)}
+          >
+            <Text
+              style={{
+                color: selectedSubjectId === subject.id ? theme.primary : theme.textSecondary,
+                fontSize: 12,
+              }}
+            >
+              {subject.title}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
+      {filteredBookmarks.length === 0 ? (
         <View style={s.emptyBox}>
           <Text style={{ fontSize: 48 }}>🔖</Text>
           <Text style={{ color: theme.textPrimary, fontSize: 16, fontWeight: "bold" }}>لا يوجد أسئلة محفوظة</Text>
@@ -120,16 +183,19 @@ export default function BookmarksScreen() {
       ) : (
         <>
           <Text style={{ color: theme.textSecondary, fontSize: 13, textAlign: "right", marginBottom: 12 }}>
-            {bookmarks.length} سؤال محفوظ
+            {filteredBookmarks.length} سؤال محفوظ
           </Text>
 
-          {bookmarks.map((bookmark, indexValue) => {
+          {filteredBookmarks.map((bookmark, indexValue) => {
             const details = findQuestionDetails(bookmark.subjectId, bookmark.questionId);
             if (!details) return null;
             const { subject, question } = details;
 
             return (
-              <View key={bookmark.questionId} style={[s.card, { backgroundColor: theme.card, borderColor: theme.secondary + "44" }]}>
+              <View
+                key={bookmark.questionId}
+                style={[s.card, { backgroundColor: theme.card, borderColor: theme.secondary + "44" }]}
+              >
                 <View style={s.cardHeader}>
                   <Text style={{ color: theme.textSecondary, fontSize: 12 }}>س {indexValue + 1}</Text>
                   <TouchableOpacity onPress={() => handleRemove(bookmark.questionId)}>
@@ -144,7 +210,15 @@ export default function BookmarksScreen() {
                   <Text style={{ color: theme.primary, fontSize: 12, textAlign: "right", marginBottom: 6 }}>
                     {subject.title}
                   </Text>
-                  <Text style={{ color: theme.textPrimary, fontSize: 15, textAlign: "right", lineHeight: 22, marginBottom: 12 }}>
+                  <Text
+                    style={{
+                      color: theme.textPrimary,
+                      fontSize: 15,
+                      textAlign: "right",
+                      lineHeight: 22,
+                      marginBottom: 12,
+                    }}
+                  >
                     {getQuestionText(question)}
                   </Text>
 
@@ -156,13 +230,25 @@ export default function BookmarksScreen() {
                       style={[
                         s.option,
                         { backgroundColor: theme.background },
-                        optionIndex === question.answer && { backgroundColor: theme.correct + "22", borderWidth: 1, borderColor: theme.correct },
+                        optionIndex === question.answer && {
+                          backgroundColor: theme.correct + "22",
+                          borderWidth: 1,
+                          borderColor: theme.correct,
+                        },
                       ]}
                     >
                       <Text style={{ color: theme.textSecondary, fontWeight: "bold", width: 20, textAlign: "center" }}>
                         {["أ", "ب", "ج", "د"][optionIndex] ?? "-"}
                       </Text>
-                      <Text style={{ color: optionIndex === question.answer ? theme.correct : theme.textPrimary, fontSize: 13, flex: 1, textAlign: "right", fontWeight: optionIndex === question.answer ? "bold" : "normal" }}>
+                      <Text
+                        style={{
+                          color: optionIndex === question.answer ? theme.correct : theme.textPrimary,
+                          fontSize: 13,
+                          flex: 1,
+                          textAlign: "right",
+                          fontWeight: optionIndex === question.answer ? "bold" : "normal",
+                        }}
+                      >
                         {option}
                       </Text>
                       {optionIndex === question.answer && (
@@ -181,11 +267,13 @@ export default function BookmarksScreen() {
 }
 
 const s = StyleSheet.create({
-  content:   { padding: 16, paddingBottom: 60 },
-  header:    { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 },
-  title:     { fontSize: 22, fontWeight: "bold" },
-  emptyBox:  { alignItems: "center", marginTop: 80, gap: 10 },
-  card:      { borderRadius: 12, padding: 14, marginBottom: 12, borderWidth: 1 },
+  content: { padding: 16, paddingBottom: 60 },
+  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 },
+  title: { fontSize: 22, fontWeight: "bold" },
+  filterRow: { gap: 8, paddingBottom: 14 },
+  filterChip: { borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1 },
+  emptyBox: { alignItems: "center", marginTop: 80, gap: 10 },
+  card: { borderRadius: 12, padding: 14, marginBottom: 12, borderWidth: 1 },
   cardHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 },
-  option:    { flexDirection: "row", alignItems: "center", gap: 10, padding: 10, borderRadius: 8, marginBottom: 6 },
+  option: { flexDirection: "row", alignItems: "center", gap: 10, padding: 10, borderRadius: 8, marginBottom: 6 },
 });

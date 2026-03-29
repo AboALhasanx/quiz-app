@@ -7,7 +7,6 @@ import {
   ScrollView,
   ActivityIndicator,
   Animated,
-  PanResponder,
   Pressable,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -38,7 +37,7 @@ function getSelectedQuestionCount(total: number, percentage: number) {
 }
 
 export default function FlashcardsScreen() {
-  const { theme } = useTheme();
+  const { theme, isDark, toggle } = useTheme();
   const params = useLocalSearchParams<{
     subjectId: string;
     chapterId: string;
@@ -59,7 +58,8 @@ export default function FlashcardsScreen() {
   const [revealed, setRevealed] = useState(false);
   const [lang, setLang] = useState<Language>("ar");
   const [bookmarked, setBookmarked] = useState(false);
-  const pan = useRef(new Animated.ValueXY()).current;
+  const [fabOpen, setFabOpen] = useState(false);
+  const flipAnim = useRef(new Animated.Value(0)).current;
 
   const questions = useMemo(() => {
     const subject = loadSubjectDataById(params.subjectId ?? "");
@@ -72,44 +72,14 @@ export default function FlashcardsScreen() {
   const textAlign = lang === "en" ? "left" : "right";
   const writingDirection = lang === "en" ? "ltr" : "rtl";
 
-  const goToNextCard = () => {
-    if (current + 1 >= questions.length) return;
-    setCurrent((value) => value + 1);
-    setRevealed(false);
-  };
-
-  const goToPreviousCard = () => {
-    if (current === 0) return;
-    setCurrent((value) => value - 1);
-    setRevealed(false);
-  };
-
-  const resetPan = () => {
-    Animated.spring(pan, {
-      toValue: { x: 0, y: 0 },
+  useEffect(() => {
+    Animated.spring(flipAnim, {
+      toValue: revealed ? 180 : 0,
+      friction: 8,
+      tension: 55,
       useNativeDriver: true,
     }).start();
-  };
-
-  const panResponder = useRef(
-    PanResponder.create({
-      onMoveShouldSetPanResponder: (_, gestureState) =>
-        Math.abs(gestureState.dx) > 12 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy),
-      onPanResponderMove: (_, gestureState) => {
-        pan.setValue({ x: gestureState.dx, y: 0 });
-      },
-      onPanResponderRelease: (_, gestureState) => {
-        if (gestureState.dx <= -70) {
-          goToNextCard();
-        } else if (gestureState.dx >= 70) {
-          goToPreviousCard();
-        }
-
-        resetPan();
-      },
-      onPanResponderTerminate: resetPan,
-    })
-  ).current;
+  }, [flipAnim, revealed]);
 
   useEffect(() => {
     if (!question) return;
@@ -121,26 +91,41 @@ export default function FlashcardsScreen() {
         title: "Flashcards",
         counter: `Card ${Math.min(current + 1, questions.length)} of ${questions.length}`,
         explanation: "Explanation",
-        done: "Done",
+        previous: "Previous",
+        next: "Next",
+        done: "Finish Review",
         bookmark: "Save Card",
         saved: "Saved",
         empty: "Loading cards...",
-        swipeHint: "Swipe left or right to move between cards",
-        tapHint: "Tap the card to reveal the answer",
+        tapHint: "Tap the card to flip it",
         correctAnswer: "Correct Answer",
+        settings: "Settings",
+        language: "Language",
+        theme: "Theme",
       }
     : {
         title: "فلاش كارد",
         counter: `البطاقة ${Math.min(current + 1, questions.length)} من ${questions.length}`,
         explanation: "الشرح",
-        done: "إنهاء",
+        previous: "السابق",
+        next: "التالي",
+        done: "إنهاء المراجعة",
         bookmark: "احفظ البطاقة",
         saved: "محفوظة",
         empty: "جاري تحميل البطاقات...",
-        swipeHint: "اسحب يمينًا أو يسارًا للانتقال بين البطاقات",
-        tapHint: "اضغط على البطاقة لإظهار الجواب",
+        tapHint: "اضغط على البطاقة لقلبها",
         correctAnswer: "الإجابة الصحيحة",
+        settings: "الإعدادات",
+        language: "اللغة",
+        theme: "الثيم",
       };
+
+  const goToCard = (nextIndex: number) => {
+    if (nextIndex < 0 || nextIndex >= questions.length) return;
+    setCurrent(nextIndex);
+    setRevealed(false);
+    setFabOpen(false);
+  };
 
   const toggleBookmark = async () => {
     if (!question) return;
@@ -173,67 +158,79 @@ export default function FlashcardsScreen() {
     );
   }
 
+  const frontRotate = flipAnim.interpolate({
+    inputRange: [0, 180],
+    outputRange: ["0deg", "180deg"],
+  });
+  const backRotate = flipAnim.interpolate({
+    inputRange: [0, 180],
+    outputRange: ["180deg", "360deg"],
+  });
+
   const correctAnswerText = getQuestionOptions(question, lang)[question.answer] ?? "";
   const explanationText = getQuestionExplanation(question, lang);
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: theme.background }} contentContainerStyle={s.content}>
-      <View style={s.header}>
-        <TouchableOpacity
-          style={[s.iconBtn, { backgroundColor: theme.card, borderColor: theme.secondary + "44" }]}
-          onPress={() => router.back()}
-        >
-          <Text style={{ color: theme.textSecondary, fontSize: 16 }}>✕</Text>
-        </TouchableOpacity>
+    <View style={[s.container, { backgroundColor: theme.background }]}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={s.content}>
+        <View style={s.header}>
+          <TouchableOpacity
+            style={[s.iconBtn, { backgroundColor: theme.card, borderColor: theme.secondary + "44" }]}
+            onPress={() => router.back()}
+          >
+            <Text style={{ color: theme.textSecondary, fontSize: 16 }}>✕</Text>
+          </TouchableOpacity>
 
-        <Text style={{ color: theme.textPrimary, fontWeight: "bold", fontSize: 18 }}>
-          {labels.title}
+          <Text style={{ color: theme.textPrimary, fontWeight: "bold", fontSize: 18 }}>
+            {labels.title}
+          </Text>
+
+          <View style={{ width: 44 }} />
+        </View>
+
+        <Text style={{ color: theme.textSecondary, fontSize: 13, textAlign: "center", marginBottom: 12 }}>
+          {labels.counter}
+        </Text>
+        <Text style={{ color: theme.textSecondary, fontSize: 12, textAlign: "center", marginBottom: 16 }}>
+          {labels.tapHint}
         </Text>
 
-        <TouchableOpacity
-          style={[s.iconBtn, { backgroundColor: theme.card, borderColor: theme.secondary + "44" }]}
-          onPress={() => setLang((value) => (value === "ar" ? "en" : "ar"))}
-        >
-          <Text style={{ color: theme.primary, fontWeight: "700", fontSize: 14 }}>
-            {lang === "ar" ? "EN" : "AR"}
-          </Text>
-        </TouchableOpacity>
-      </View>
+        <Pressable onPress={() => setRevealed((value) => !value)}>
+          <View style={s.cardWrap}>
+            <Animated.View
+              style={[
+                s.cardFace,
+                {
+                  backgroundColor: theme.card,
+                  borderColor: theme.secondary + "44",
+                  transform: [{ perspective: 1000 }, { rotateY: frontRotate }],
+                },
+              ]}
+            >
+              <Text
+                style={{
+                  color: theme.textPrimary,
+                  fontSize: 18,
+                  fontWeight: "600",
+                  lineHeight: 28,
+                  textAlign,
+                  writingDirection,
+                }}
+              >
+                {getQuestionText(question, lang)}
+              </Text>
+            </Animated.View>
 
-      <Text style={{ color: theme.textSecondary, fontSize: 13, textAlign: "center", marginBottom: 12 }}>
-        {labels.counter}
-      </Text>
-      <Text style={{ color: theme.textSecondary, fontSize: 12, textAlign: "center", marginBottom: 12 }}>
-        {revealed ? labels.swipeHint : labels.tapHint}
-      </Text>
-
-      <Pressable onPress={() => setRevealed((value) => !value)}>
-        <Animated.View
-          {...panResponder.panHandlers}
-          style={[
-            s.card,
-            {
-              backgroundColor: theme.card,
-              borderColor: theme.secondary + "44",
-              transform: [{ translateX: pan.x }],
-            },
-          ]}
-        >
-          <Text
-            style={{
-              color: theme.textPrimary,
-              fontSize: 18,
-              fontWeight: "600",
-              lineHeight: 28,
-              textAlign,
-              writingDirection,
-            }}
-          >
-            {getQuestionText(question, lang)}
-          </Text>
-
-          {revealed && (
-            <>
+            <Animated.View
+              style={[
+                s.cardFace,
+                {
+                  backgroundColor: theme.card,
+                  borderColor: theme.secondary + "44",
+                  transform: [{ perspective: 1000 }, { rotateY: backRotate }],
+                },
+              ]}
+            >
               <View style={[s.answerBox, { backgroundColor: theme.background, borderColor: theme.correct + "44" }]}>
                 <Text style={{ color: theme.correct, fontSize: 14, fontWeight: "bold", marginBottom: 8 }}>
                   {labels.correctAnswer}
@@ -269,33 +266,88 @@ export default function FlashcardsScreen() {
                   </Text>
                 </View>
               )}
-            </>
-          )}
-        </Animated.View>
-      </Pressable>
+            </Animated.View>
+          </View>
+        </Pressable>
 
-      <TouchableOpacity style={s.bookmarkRow} onPress={toggleBookmark}>
-        <Ionicons
-          name={bookmarked ? "bookmark" : "bookmark-outline"}
-          size={20}
-          color={bookmarked ? theme.primary : theme.textSecondary}
-        />
-        <Text style={{ color: bookmarked ? theme.primary : theme.textSecondary, fontSize: 13 }}>
-          {bookmarked ? labels.saved : labels.bookmark}
-        </Text>
-      </TouchableOpacity>
-
-      {current + 1 >= questions.length && (
-        <TouchableOpacity style={[s.primaryBtn, { backgroundColor: theme.primary }]} onPress={handleDone}>
-          <Text style={s.primaryBtnText}>{labels.done}</Text>
+        <TouchableOpacity style={s.bookmarkRow} onPress={toggleBookmark}>
+          <Ionicons
+            name={bookmarked ? "bookmark" : "bookmark-outline"}
+            size={20}
+            color={bookmarked ? theme.primary : theme.textSecondary}
+          />
+          <Text style={{ color: bookmarked ? theme.primary : theme.textSecondary, fontSize: 13 }}>
+            {bookmarked ? labels.saved : labels.bookmark}
+          </Text>
         </TouchableOpacity>
-      )}
-    </ScrollView>
+
+        <View style={s.actionsRow}>
+          <TouchableOpacity
+            style={[
+              s.secondaryBtn,
+              {
+                backgroundColor: current === 0 ? theme.secondary + "22" : theme.card,
+                borderColor: theme.secondary + "44",
+              },
+            ]}
+            onPress={() => goToCard(current - 1)}
+            disabled={current === 0}
+          >
+            <Text style={{ color: current === 0 ? theme.textSecondary : theme.textPrimary, fontWeight: "700" }}>
+              {labels.previous}
+            </Text>
+          </TouchableOpacity>
+
+          {current + 1 >= questions.length ? (
+            <TouchableOpacity
+              style={[s.primaryBtn, { backgroundColor: theme.primary }]}
+              onPress={handleDone}
+            >
+              <Text style={s.primaryBtnText}>{labels.done}</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={[s.primaryBtn, { backgroundColor: theme.primary }]}
+              onPress={() => goToCard(current + 1)}
+            >
+              <Text style={s.primaryBtnText}>{labels.next}</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </ScrollView>
+
+      <View style={s.fabArea} pointerEvents="box-none">
+        {fabOpen && (
+          <View style={[s.fabMenu, { backgroundColor: theme.card, borderColor: theme.secondary + "44" }]}>
+            <TouchableOpacity style={s.fabMenuItem} onPress={() => setLang((value) => (value === "ar" ? "en" : "ar"))}>
+              <Ionicons name="language-outline" size={18} color={theme.primary} />
+              <Text style={{ color: theme.textPrimary, fontSize: 13 }}>
+                {labels.language}: {lang === "ar" ? "AR" : "EN"}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={s.fabMenuItem} onPress={toggle}>
+              <Ionicons name={isDark ? "sunny-outline" : "moon-outline"} size={18} color={theme.primary} />
+              <Text style={{ color: theme.textPrimary, fontSize: 13 }}>
+                {labels.theme}: {isDark ? "Dark" : "Light"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        <TouchableOpacity
+          style={[s.fabButton, { backgroundColor: theme.primary }]}
+          onPress={() => setFabOpen((value) => !value)}
+        >
+          <Ionicons name={fabOpen ? "close" : "settings-outline"} size={22} color="#fff" />
+        </TouchableOpacity>
+      </View>
+    </View>
   );
 }
 
 const s = StyleSheet.create({
-  content: { padding: 16, paddingTop: 50, paddingBottom: 40 },
+  container: { flex: 1 },
+  content: { padding: 16, paddingTop: 50, paddingBottom: 140 },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
   header: {
     flexDirection: "row",
@@ -311,31 +363,77 @@ const s = StyleSheet.create({
     alignItems: "center",
     borderWidth: 1,
   },
-  card: {
+  cardWrap: {
+    minHeight: 360,
+    position: "relative",
+  },
+  cardFace: {
     borderRadius: 18,
     padding: 18,
     borderWidth: 1,
-    minHeight: 260,
+    minHeight: 360,
+    backfaceVisibility: "hidden",
+    justifyContent: "center",
   },
   answerBox: {
-    marginTop: 16,
+    marginTop: 14,
     borderRadius: 12,
     borderWidth: 1,
     padding: 14,
   },
-  primaryBtn: {
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 18,
-  },
-  primaryBtnText: { color: "#fff", fontWeight: "bold", fontSize: 15 },
   bookmarkRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
     marginTop: 16,
+  },
+  actionsRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 20,
+  },
+  primaryBtn: {
+    flex: 1,
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  primaryBtnText: { color: "#fff", fontWeight: "bold", fontSize: 15 },
+  secondaryBtn: {
+    flex: 1,
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+  },
+  fabArea: {
+    position: "absolute",
+    right: 18,
+    bottom: 24,
+    alignItems: "flex-end",
+  },
+  fabMenu: {
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: 12,
+    marginBottom: 10,
+    gap: 10,
+    minWidth: 160,
+  },
+  fabMenuItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  fabButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: "center",
+    justifyContent: "center",
+    elevation: 4,
   },
 });

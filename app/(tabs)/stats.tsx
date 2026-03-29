@@ -1,9 +1,24 @@
 import { useState, useCallback } from "react";
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Alert } from "react-native";
 import { useFocusEffect, router } from "expo-router";
-import { deleteResultFromFirestore, fetchResultsFromFirestore, flushSyncQueue, getCurrentUser, isSyncQueueFlushing, logoutUser } from "../../utils/firebase";
-import { clearResults, getResults, getSyncQueue, mergeResultsFromRemote, removeResult, QuizResult } from "../../utils/storage";
+import {
+  deleteResultFromFirestore,
+  fetchResultsFromFirestore,
+  flushSyncQueue,
+  getCurrentUser,
+  isSyncQueueFlushing,
+  logoutUser,
+} from "../../utils/firebase";
+import {
+  clearResults,
+  getResults,
+  getSyncQueue,
+  mergeResultsFromRemote,
+  removeResult,
+  QuizResult,
+} from "../../utils/storage";
 import { useTheme } from "../../utils/ThemeContext";
+import { SUBJECT_MANIFEST } from "../../utils/subjects";
 
 type SyncStatus = "ok" | "syncing" | "warning";
 
@@ -13,6 +28,7 @@ export default function StatsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [syncStatus, setSyncStatus] = useState<SyncStatus>("ok");
+  const [selectedSubjectId, setSelectedSubjectId] = useState("all");
 
   const loadSyncStatus = useCallback(async () => {
     const queue = await getSyncQueue();
@@ -97,14 +113,19 @@ export default function StatsScreen() {
     ]);
   };
 
-  const totalQuizzes = results.length;
+  const filteredResults =
+    selectedSubjectId === "all"
+      ? results
+      : results.filter((result) => result.subjectId === selectedSubjectId);
+
+  const totalQuizzes = filteredResults.length;
   const avgPercentage =
     totalQuizzes > 0
-      ? Math.round(results.reduce((sum, result) => sum + result.percentage, 0) / totalQuizzes)
+      ? Math.round(filteredResults.reduce((sum, result) => sum + result.percentage, 0) / totalQuizzes)
       : 0;
-  const bestScore = totalQuizzes > 0 ? Math.max(...results.map((result) => result.percentage)) : 0;
-  const totalQuestions = results.reduce((sum, result) => sum + result.total, 0);
-  const totalCorrect = results.reduce((sum, result) => sum + result.correct, 0);
+  const bestScore = totalQuizzes > 0 ? Math.max(...filteredResults.map((result) => result.percentage)) : 0;
+  const totalQuestions = filteredResults.reduce((sum, result) => sum + result.total, 0);
+  const totalCorrect = filteredResults.reduce((sum, result) => sum + result.correct, 0);
 
   const formatDate = (iso: string) => {
     const date = new Date(iso);
@@ -162,6 +183,46 @@ export default function StatsScreen() {
         </TouchableOpacity>
       </View>
 
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.filterRow}>
+        <TouchableOpacity
+          style={[
+            s.filterChip,
+            {
+              backgroundColor: selectedSubjectId === "all" ? theme.primary + "22" : theme.card,
+              borderColor: selectedSubjectId === "all" ? theme.primary : theme.secondary + "44",
+            },
+          ]}
+          onPress={() => setSelectedSubjectId("all")}
+        >
+          <Text style={{ color: selectedSubjectId === "all" ? theme.primary : theme.textSecondary, fontSize: 12 }}>
+            كل المواد
+          </Text>
+        </TouchableOpacity>
+
+        {SUBJECT_MANIFEST.map((subject) => (
+          <TouchableOpacity
+            key={subject.id}
+            style={[
+              s.filterChip,
+              {
+                backgroundColor: selectedSubjectId === subject.id ? theme.primary + "22" : theme.card,
+                borderColor: selectedSubjectId === subject.id ? theme.primary : theme.secondary + "44",
+              },
+            ]}
+            onPress={() => setSelectedSubjectId(subject.id)}
+          >
+            <Text
+              style={{
+                color: selectedSubjectId === subject.id ? theme.primary : theme.textSecondary,
+                fontSize: 12,
+              }}
+            >
+              {subject.title}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
       <View style={s.cardsRow}>
         <View style={[s.card, { backgroundColor: theme.card, borderColor: theme.secondary + "44" }]}>
           <Text style={[s.cardNum, { color: theme.textPrimary }]}>{totalQuizzes}</Text>
@@ -188,7 +249,7 @@ export default function StatsScreen() {
         </View>
       </View>
 
-      {totalQuizzes > 0 ? (
+      {filteredResults.length > 0 ? (
         <>
           <View style={s.sectionHeader}>
             <Text style={[s.sectionTitle, { color: theme.textPrimary }]}>سجل الكوزات</Text>
@@ -197,7 +258,7 @@ export default function StatsScreen() {
             </TouchableOpacity>
           </View>
 
-          {results.map((result) => (
+          {filteredResults.map((result) => (
             <View
               key={result.id}
               style={[s.resultCard, { backgroundColor: theme.card, borderColor: theme.secondary + "44" }]}
@@ -280,6 +341,8 @@ const s = StyleSheet.create({
   titleGroup: { flexDirection: "row", alignItems: "center", gap: 8 },
   syncDot: { width: 10, height: 10, borderRadius: 5 },
   title: { fontSize: 22, fontWeight: "bold" },
+  filterRow: { gap: 8, paddingBottom: 14 },
+  filterChip: { borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1 },
   cardsRow: { flexDirection: "row", gap: 10, marginBottom: 10 },
   card: { flex: 1, borderRadius: 12, padding: 14, alignItems: "center", borderWidth: 1 },
   cardNum: { fontSize: 26, fontWeight: "bold" },

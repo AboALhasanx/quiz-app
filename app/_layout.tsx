@@ -10,7 +10,7 @@ import { AppThemeProvider, useTheme } from "../utils/ThemeContext";
 
 function AppContent() {
   const { isDark, theme } = useTheme();
-  const [checking, setChecking] = useState(true);
+  const [checking, setChecking] = useState(() => !auth.currentUser);
 
   SystemUI.setBackgroundColorAsync(theme.background);
 
@@ -24,6 +24,12 @@ function AppContent() {
   };
 
   useEffect(() => {
+    if (auth.currentUser) {
+      void flushSyncQueue();
+      router.replace("/(tabs)");
+      setChecking(false);
+    }
+
     const unsub = onAuthStateChanged(auth, (user) => {
       if (user) {
         void flushSyncQueue();

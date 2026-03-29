@@ -29,7 +29,6 @@ import {
   getScopedQuestions,
   loadSubjectDataById,
 } from "../../utils/subjects";
-import { playCorrect, playWrong } from "../../utils/sounds";
 
 type ShuffledQuestion = SubjectQuestion & {
   shuffledOptions: {
@@ -113,6 +112,7 @@ export default function QuizPlayScreen() {
   const [lang, setLang] = useState<Language>(initialLang);
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const [bookmarked, setBookmarked] = useState(false);
+  const [fabOpen, setFabOpen] = useState(false);
   const [sessionChecked, setSessionChecked] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const questionsRef = useRef<ShuffledQuestion[]>([]);
@@ -320,11 +320,6 @@ export default function QuizPlayScreen() {
 
     if (mode === "recitation") {
       setRevealed(true);
-      if (originalIndex === question.answer) {
-        playCorrect();
-      } else {
-        playWrong();
-      }
     }
   };
 
@@ -443,14 +438,7 @@ export default function QuizPlayScreen() {
             ⏱️ {formatTime(timeLeft)}
           </Text>
         ) : (
-          <TouchableOpacity
-            style={[s.langToggle, { backgroundColor: theme.card, borderColor: theme.secondary + "44" }]}
-            onPress={() => setLang((value) => (value === "ar" ? "en" : "ar"))}
-          >
-            <Text style={{ color: theme.buttonText, fontWeight: "600", fontSize: 14 }}>
-              {lang === "ar" ? "EN" : "AR"}
-            </Text>
-          </TouchableOpacity>
+          <View style={{ width: 60 }} />
         )}
       </View>
 
@@ -460,15 +448,6 @@ export default function QuizPlayScreen() {
 
       <ScrollView style={s.scroll} contentContainerStyle={s.scrollContent}>
         <View style={s.topToolsRow}>
-          <TouchableOpacity
-            onPress={toggle}
-            style={[s.langToggle, { backgroundColor: theme.card, borderColor: theme.secondary + "44" }]}
-          >
-            <Text style={{ color: theme.buttonText, fontWeight: "600", fontSize: 14 }}>
-              {isDark ? "نهار" : "ليل"}
-            </Text>
-          </TouchableOpacity>
-
           <TouchableOpacity style={s.bookmarkBtn} onPress={toggleBookmark}>
             <Ionicons
               name={bookmarked ? "bookmark" : "bookmark-outline"}
@@ -580,6 +559,35 @@ export default function QuizPlayScreen() {
           </TouchableOpacity>
         )}
       </ScrollView>
+
+      <View style={s.fabArea} pointerEvents="box-none">
+        {fabOpen && (
+          <View style={[s.fabMenu, { backgroundColor: theme.card, borderColor: theme.secondary + "44" }]}>
+            <TouchableOpacity
+              style={s.fabMenuItem}
+              onPress={() => setLang((value) => (value === "ar" ? "en" : "ar"))}
+            >
+              <Ionicons name="language-outline" size={18} color={theme.primary} />
+              <Text style={{ color: theme.textPrimary, fontSize: 13 }}>
+                اللغة: {lang === "ar" ? "AR" : "EN"}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={s.fabMenuItem} onPress={toggle}>
+              <Ionicons name={isDark ? "sunny-outline" : "moon-outline"} size={18} color={theme.primary} />
+              <Text style={{ color: theme.textPrimary, fontSize: 13 }}>
+                الثيم: {isDark ? "Dark" : "Light"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        <TouchableOpacity
+          style={[s.fabButton, { backgroundColor: theme.primary }]}
+          onPress={() => setFabOpen((value) => !value)}
+        >
+          <Ionicons name={fabOpen ? "close" : "settings-outline"} size={22} color="#fff" />
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -604,10 +612,10 @@ const s = StyleSheet.create({
   progressBg: { height: 4, marginHorizontal: 16, borderRadius: 2 },
   progressFill: { height: 4, borderRadius: 2 },
   scroll: { flex: 1 },
-  scrollContent: { padding: 16, paddingBottom: 40 },
+  scrollContent: { padding: 16, paddingBottom: 120 },
   topToolsRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "flex-end",
     alignItems: "center",
     marginBottom: 8,
   },
@@ -640,4 +648,31 @@ const s = StyleSheet.create({
     width: "100%",
   },
   nextBtnText: { color: "#fff", fontWeight: "bold", fontSize: 16 },
+  fabArea: {
+    position: "absolute",
+    right: 18,
+    bottom: 24,
+    alignItems: "flex-end",
+  },
+  fabMenu: {
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: 12,
+    marginBottom: 10,
+    gap: 10,
+    minWidth: 160,
+  },
+  fabMenuItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  fabButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: "center",
+    justifyContent: "center",
+    elevation: 4,
+  },
 });

@@ -1,9 +1,10 @@
 import { useState, useCallback } from "react";
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, Switch } from "react-native";
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, Switch, Alert } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { getResults, QuizResult } from "../../utils/storage";
 import { useTheme } from "../../utils/ThemeContext";
 import { SUBJECT_MANIFEST, getSubjectMetaByFile } from "../../utils/subjects";
+import { logoutUser } from "../../utils/firebase";
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -26,6 +27,20 @@ export default function HomeScreen() {
 
   const getScoreColor = (percentage: number) =>
     percentage >= 70 ? theme.correct : percentage >= 50 ? theme.primary : theme.wrong;
+
+  const handleLogout = () => {
+    Alert.alert("تسجيل الخروج", "تريد تسجيل الخروج؟", [
+      { text: "إلغاء", style: "cancel" },
+      {
+        text: "خروج",
+        style: "destructive",
+        onPress: async () => {
+          await logoutUser();
+          router.replace("/login");
+        },
+      },
+    ]);
+  };
 
   return (
     <View style={[s.container, { backgroundColor: theme.background }]}>
@@ -54,6 +69,14 @@ export default function HomeScreen() {
         data={SUBJECT_MANIFEST}
         keyExtractor={(item) => item.id}
         showsVerticalScrollIndicator={false}
+        ListFooterComponent={
+          <TouchableOpacity
+            style={[s.logoutBtn, { backgroundColor: theme.card, borderColor: theme.secondary + "44" }]}
+            onPress={handleLogout}
+          >
+            <Text style={{ color: theme.wrong, fontWeight: "bold", fontSize: 14 }}>تسجيل الخروج</Text>
+          </TouchableOpacity>
+        }
         renderItem={({ item }) => {
           const last = lastResults[item.id];
           const { chaptersCount, questionsCount } = getSubjectMetaByFile(item.file);
@@ -150,4 +173,12 @@ const s = StyleSheet.create({
   progressBg: { height: 4, borderRadius: 2, marginBottom: 8 },
   progressFill: { height: 4, borderRadius: 2 },
   arrow: { position: "absolute", left: 16, top: "50%", fontSize: 18 },
+  logoutBtn: {
+    borderRadius: 14,
+    borderWidth: 1,
+    paddingVertical: 16,
+    alignItems: "center",
+    marginTop: 8,
+    marginBottom: 16,
+  },
 });
