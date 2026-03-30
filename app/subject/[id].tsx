@@ -63,6 +63,32 @@ export default function SubjectDetailScreen() {
           تم إنهاء {completedChaptersCount} من {subject.chapters.length} فصول
         </Text>
 
+
+                {/* حساب النسبة المئوية */}
+        {subject.chapters.length > 0 && (
+          <View style={s.progressContainer}>
+            
+            {/* شريط التقدم نفسه */}
+            <View style={[s.progressTrack, { backgroundColor: theme.secondary + "22" }]}>
+              <View
+                style={[
+                  s.progressFill,
+                  {
+                    backgroundColor: theme.primary,
+                    width: `${(completedChaptersCount / subject.chapters.length) * 100}%`,
+                  },
+                ]}
+              />
+            </View>
+        
+            {/* النص أسفل الشريط */}
+            <Text style={[s.completionText, { color: theme.textSecondary }]}>
+              تم إنهاء {completedChaptersCount} من {subject.chapters.length} مواضيع
+            </Text>
+            
+          </View>
+        )}
+
         <TouchableOpacity
           style={[s.fullQuizBtn, { backgroundColor: theme.primary }]}
           onPress={() => router.push(`/quiz/setup?scope=subject&subjectId=${id}&chapterId=&topicId=` as any)}
@@ -125,7 +151,27 @@ const s = StyleSheet.create({
   subjectMeta: { flexDirection: "row", justifyContent: "flex-end", gap: 16, marginBottom: 10 },
   metaItem: { flexDirection: "row", alignItems: "center", gap: 4 },
   metaText: { fontSize: 13 },
-  completionText: { fontSize: 13, textAlign: "right", marginBottom: 14 },
+    progressContainer: {
+    marginTop: 8, // يمكنك تعديل المسافة حسب تصميمك
+    gap: 6,       // المسافة بين الشريط والنص
+  },
+  progressTrack: {
+    direction: "ltr",        // لجعل الشريط يملأ من اليمين لليسار
+    height: 8,               // سمك الشريط
+    borderRadius: 4,         // لتدوير الأطراف
+    overflow: "hidden",      // مهم جداً: لمنع الجزء الممتلئ من الخروج عن حدود الدائرة
+  },
+  progressFill: {height: "100%", borderRadius: 4},
+  completionText: { fontSize: 13, textAlign: "right", marginBottom: 20 },
+  fullChapterBtn: {
+    borderRadius: 10,
+    padding: 12,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 8,
+    
+  },
   fullQuizBtn: {
     borderRadius: 10,
     padding: 12,
