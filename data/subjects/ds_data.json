@@ -5,6 +5,8 @@
     {
       "id": "ch3",
       "title": "المصفوفات, القوائم المرتبطة والاستدعاء الذاتي (Arrays, Linked Lists & Recursion)",
+      "malzama": "assets/pdfs/algo/Algo_Ch03.pdf",
+      "summary": "assets/pdfs/algo/Sum_Algo_Ch03.pdf",
       "topics": [
         {
           "id": "t1",
@@ -972,6 +974,8 @@
     {
       "id": "ch4",
       "title": "خوارزميات التحليل (Algorithm Analysis)",
+      "malzama": "assets/pdfs/algo/Algo_Ch04.pdf",
+      "summary": "assets/pdfs/algo/Sum_Algo_Ch04.pdf",
       "topics": [
         {
           "id": "t1",
@@ -1750,6 +1754,8 @@
     {
       "id": "ch5",
       "title": "المكدسات والطوابير (Stacks & Queues)",
+      "malzama": "assets/pdfs/algo/Algo_Ch05.pdf",
+      "summary": "assets/pdfs/algo/Sum_Algo_Ch05.pdf",
       "topics": [
         {
           "id": "t1",
@@ -2718,6 +2724,8 @@
     {
       "id": "ch6",
       "title": "المتجهات، القوائم، والمتتاليات (Vectors, Lists & Sequences)",
+      "malzama": "assets/pdfs/algo/Algo_Ch06.pdf",
+      "summary": "assets/pdfs/algo/Sum_Algo_Ch06.pdf",
       "topics": [
         {
           "id": "t1",
@@ -3597,6 +3605,8 @@
     {
       "id": "ch7",
       "title": "الأشجار العامة والثنائية (General & Binary Trees)",
+      "malzama": "assets/pdfs/algo/Algo_Ch07.pdf",
+      "summary": "assets/pdfs/algo/Sum_Algo_Ch07.pdf",
       "topics": [
         {
           "id": "t1",
@@ -4753,6 +4763,8 @@
     {
       "id": "ch10",
       "title": "انواع اخرى من الاشجار (Other types of Trees)",
+      "malzama": "assets/pdfs/algo/Algo_Ch10.pdf",
+      "summary": "assets/pdfs/algo/Sum_Algo_Ch10.pdf",
       "topics": [
         {
           "id": "t1",
@@ -5329,6 +5341,8 @@
     {
       "id": "ch11",
       "title": "خوارزميات الفرز والاختيار (Sorting & Selection Algorithms)",
+      "malzama": "assets/pdfs/algo/Algo_Ch11.pdf",
+      "summary": "assets/pdfs/algo/Sum_Algo_Ch11.pdf",
       "topics": [
         {
           "id": "t1",
@@ -6839,6 +6853,8 @@
     {
       "id": "ch13",
       "title": "الرسم البياني (Graphs)",
+      "malzama": "assets/pdfs/algo/Algo_Ch13.pdf",
+      "summary": "assets/pdfs/algo/Sum_Algo_Ch13.pdf",
       "topics": [
         {
           "id": "t1",

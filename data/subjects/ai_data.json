@@ -5,6 +5,8 @@
     {
       "id": "ch1",
       "title": "اختبار الجابتر1- الذكاء الاصطناعي",
+      "malzama": "assets/pdfs/ai/AI_Ch01.pdf",
+      "summary": "assets/pdfs/ai/Sum_AI_Ch01.pdf",
       "topics": [
         {
           "id": "t1",
@@ -207,6 +209,8 @@
     {
       "id": "ch2",
       "title": "منطق المحمولات (The Predicate Calculus)",
+      "malzama": "assets/pdfs/ai/AI_Ch02.pdf",
+      "summary": "assets/pdfs/ai/Sum_AI_Ch02.pdf",
       "topics": [
         {
           "id": "t1",
@@ -1934,6 +1938,8 @@
     {
       "id": "ch3",
       "title": "الهياكل واستراتيجيات البحث في فضاء الحالة (Structures And Strategies For State Space Search)",
+      "malzama": "assets/pdfs/ai/AI_Ch03.pdf",
+      "summary": "assets/pdfs/ai/Sum_AI_Ch03.pdf",
       "topics": [
         {
           "id": "t1",
@@ -3604,6 +3610,8 @@
     {
       "id": "ch4",
       "title": "البحث الذكي المعتمد على التقدير (Heuristic Search)",
+      "malzama": "assets/pdfs/ai/AI_Ch04.pdf",
+      "summary": "assets/pdfs/ai/Sum_AI_Ch04.pdf",
       "topics": [
         {
           "id": "t1",

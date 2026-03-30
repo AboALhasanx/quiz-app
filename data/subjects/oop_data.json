@@ -5,6 +5,8 @@
     {
       "id": "ch1",
       "title": "الدوال (Functions)",
+      "malzama": "assets/pdfs/oop/OOP_Ch01_Review.pdf",
+      "summary": "assets/pdfs/oop/Sum_OOP_Introduction.pdf",
       "topics": [
         {
           "id": "t1",
@@ -795,6 +797,8 @@
     {
       "id": "ch2",
       "title": "مفهوم الكلاس (Class Definition)",
+      "malzama": "assets/pdfs/oop/OOP_Ch02_Class_Definition.pdf",
+      "summary": "assets/pdfs/oop/Sum_OOP_Class_Concept.pdf",
       "topics": [
         {
           "id": "t1",
@@ -1263,6 +1267,8 @@
     {
       "id": "ch3",
       "title": "تفاعل الكائنات (Objects Interaction)",
+      "malzama": "assets/pdfs/oop/OOP_Ch03_Object_Interaction.pdf",
+      "summary": "assets/pdfs/oop/Sum_OOP_Object_Interaction.pdf",
       "topics": [
         {
           "id": "t1",
@@ -1743,6 +1749,8 @@
     {
       "id": "ch4",
       "title": "تجميع الكائنات (Objects Grouping)",
+      "malzama": "assets/pdfs/oop/OOP_Ch04_Grouping_Objects.pdf",
+      "summary": "assets/pdfs/oop/Sum_OOP_Grouping_Objects.pdf",
       "topics": [
         {
           "id": "t1",
@@ -2147,6 +2155,8 @@
     {
       "id": "ch5",
       "title": "الوراثة (Inheritance)",
+      "malzama": "assets/pdfs/oop/OOP_Ch05_Inheritance.pdf",
+      "summary": "assets/pdfs/oop/Sum_OOP_Inheritance.pdf",
       "topics": [
         {
           "id": "t1",
@@ -2627,6 +2637,8 @@
     {
       "id": "ch6",
       "title": "المزيد عن الوراثة (More About Inheritance)",
+      "malzama": "assets/pdfs/oop/OOP_Ch06_More_Inheritance.pdf",
+      "summary": "assets/pdfs/oop/Sum_OOP_More_Inheritance.pdf",
       "topics": [
         {
           "id": "t1",
@@ -3221,6 +3233,8 @@
     {
       "id": "ch7",
       "title": "التجريد (Abstraction)",
+      "malzama": "assets/pdfs/oop/OOP_Ch07_Abstraction.pdf",
+      "summary": "assets/pdfs/oop/Sum_OOP_Abstraction.pdf",
       "topics": [
         {
           "id": "t1",

@@ -5,6 +5,8 @@
     {
       "id": "ch1",
       "title": "المقدمة (Introduction)",
+      "malzama": null,
+      "summary": "assets/pdfs/os/Sum_OS_Introduction.pdf",
       "topics": [
         {
           "id": "t1",
@@ -311,6 +313,8 @@
     {
       "id": "ch3",
       "title": "العمليات (Processes)",
+      "malzama": "assets/pdfs/os/OS_Ch03.pdf",
+      "summary": "assets/pdfs/os/Sum_OS_Ch03.pdf",
       "topics": [
         {
           "id": "t1",
@@ -2225,6 +2229,8 @@
     {
       "id": "ch4",
       "title": "الخيوط والتزامن (Threads & Concurrency)",
+      "malzama": "assets/pdfs/os/OS_Ch04.pdf",
+      "summary": "assets/pdfs/os/Sum_OS_Ch04.pdf",
       "topics": [
         {
           "id": "t1",
@@ -4066,6 +4072,8 @@
     {
       "id": "ch5",
       "title": "جدولة المعالج (CPU Scheduling)",
+      "malzama": "assets/pdfs/os/OS_Ch05.pdf",
+      "summary": "assets/pdfs/os/Sum_OS_Ch05.pdf",
       "topics": [
         {
           "id": "t1",
@@ -6148,6 +6156,8 @@
     {
       "id": "ch6",
       "title": "ادوات المزامنة (Synchronization Tools)",
+      "malzama": "assets/pdfs/os/OS_Ch06.pdf",
+      "summary": "assets/pdfs/os/Sum_OS_Ch06.pdf",
       "topics": [
         {
           "id": "t1",
@@ -7894,6 +7904,8 @@
     {
       "id": "ch7",
       "title": "أمثلة على المزامنة (Synchronization Examples)",
+      "malzama": "assets/pdfs/os/OS_Ch07.pdf",
+      "summary": "assets/pdfs/os/Sum_OS_Ch07.pdf",
       "topics": [
         {
           "id": "t1",
@@ -8672,6 +8684,8 @@
     {
       "id": "ch8",
       "title": "الجمود (Deadlocks)",
+      "malzama": "assets/pdfs/os/OS_Ch08.pdf",
+      "summary": "assets/pdfs/os/Sum_OS_Ch08.pdf",
       "topics": [
         {
           "id": "t1",

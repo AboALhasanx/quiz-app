@@ -5,6 +5,8 @@
     {
       "id": "ch1",
       "title": "مقدمة عن شبكات الحاسوب (Introduction)",
+      "malzama": "assets/pdfs/net/Net_Ch01_Introduction.pdf",
+      "summary": "assets/pdfs/net/Sum_Net_Introduction.pdf",
       "topics": [
         {
           "id": "t1",
@@ -795,6 +797,8 @@
     {
       "id": "ch2",
       "title": "انواع نماذج الشبكات (Network Models)",
+      "malzama": "assets/pdfs/net/Net_Ch02_Models.pdf",
+      "summary": "assets/pdfs/net/Sum_Net_Models.pdf",
       "topics": [
         {
           "id": "t1",
@@ -1585,6 +1589,8 @@
     {
       "id": "ch3",
       "title": "اكتشاف الاخطاء وتصحيحها (Error Detection & Correction)",
+      "malzama": "assets/pdfs/net/Net_Ch03_Logical_Addressing.pdf",
+      "summary": "assets/pdfs/net/Sum_Net_Logical_Addressing.pdf",
       "topics": [
         {
           "id": "t1",
@@ -2464,6 +2470,8 @@
     {
       "id": "ch4",
       "title": "العنونة المنطقية في طبقة الشبكة (Logical Addressing In Network Layer)",
+      "malzama": "assets/pdfs/net/Net_Ch04_Error_Detection.pdf",
+      "summary": "assets/pdfs/net/Sum_Net_Error_Detection.pdf",
       "topics": [
         {
           "id": "t1",

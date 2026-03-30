@@ -2,6 +2,7 @@ import manifest from "../data/subjects/index.json";
 
 export type Language = "ar" | "en";
 
+
 export type SubjectQuestion = {
   id: string;
   text?: string;
@@ -23,6 +24,8 @@ export type SubjectChapter = {
   id: string;
   title: string;
   topics: SubjectTopic[];
+  malzama?: string;  // ← أضف هذا
+  summary?: string;  // ← وهذا
 };
 
 export type SubjectData = {

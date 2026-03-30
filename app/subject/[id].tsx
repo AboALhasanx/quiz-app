@@ -6,6 +6,12 @@ import { useTheme } from "../../utils/ThemeContext";
 import { buildChapterCompletionKey, getChapterCompletions } from "../../utils/storage";
 import { loadSubjectDataById } from "../../utils/subjects";
 
+// دالة لاستخراج رقم الجابتر من الـ id (رقم فقط)
+function getChapterNumber(chapterId: string): string {
+  const match = chapterId.match(/\d+$/);
+  return match ? match[0] : "";
+}
+
 export default function SubjectDetailScreen() {
   const { theme } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -46,7 +52,6 @@ export default function SubjectDetailScreen() {
   return (
     <View style={[s.container, { backgroundColor: theme.background }]}>
       <View style={[s.subjectCard, { backgroundColor: theme.card, borderColor: theme.secondary + "44" }]}>
-        <Text style={[s.subjectCode, { color: theme.primary }]}>{(id ?? "").toUpperCase()}</Text>
         <Text style={[s.subjectTitle, { color: theme.textPrimary }]}>{subject.title}</Text>
         <View style={s.subjectMeta}>
           <View style={s.metaItem}>
@@ -59,16 +64,8 @@ export default function SubjectDetailScreen() {
           </View>
         </View>
 
-        <Text style={[s.completionText, { color: theme.textSecondary }]}>
-          تم إنهاء {completedChaptersCount} من {subject.chapters.length} فصول
-        </Text>
-
-
-                {/* حساب النسبة المئوية */}
         {subject.chapters.length > 0 && (
           <View style={s.progressContainer}>
-            
-            {/* شريط التقدم نفسه */}
             <View style={[s.progressTrack, { backgroundColor: theme.secondary + "22" }]}>
               <View
                 style={[
@@ -80,12 +77,9 @@ export default function SubjectDetailScreen() {
                 ]}
               />
             </View>
-        
-            {/* النص أسفل الشريط */}
             <Text style={[s.completionText, { color: theme.textSecondary }]}>
               تم إنهاء {completedChaptersCount} من {subject.chapters.length} مواضيع
             </Text>
-            
           </View>
         )}
 
@@ -110,6 +104,8 @@ export default function SubjectDetailScreen() {
             0
           );
 
+          const chapterNumber = getChapterNumber(item.id);
+
           return (
             <TouchableOpacity
               style={[s.card, { backgroundColor: theme.card, borderColor: theme.secondary + "44" }]}
@@ -117,6 +113,7 @@ export default function SubjectDetailScreen() {
               activeOpacity={0.75}
             >
               <View style={s.cardContent}>
+                {/* Text block comes first – will appear on the right in RTL */}
                 <View style={s.cardText}>
                   <Text style={[s.chapterTitle, { color: theme.textPrimary }]}>{item.title}</Text>
                   <View style={s.cardMeta}>
@@ -125,8 +122,11 @@ export default function SubjectDetailScreen() {
                   </View>
                 </View>
 
+                {/* Chapter info block comes second – will appear on the left in RTL */}
                 <View style={s.cardRight}>
-                  <Ionicons name="chevron-back-outline" size={20} color={theme.textSecondary} />
+                  {chapterNumber !== "" && (
+                    <Text style={[s.chapterNumber, { color: theme.textSecondary,},]}>{chapterNumber}</Text>
+                  )}
                 </View>
               </View>
             </TouchableOpacity>
@@ -151,17 +151,17 @@ const s = StyleSheet.create({
   subjectMeta: { flexDirection: "row", justifyContent: "flex-end", gap: 16, marginBottom: 10 },
   metaItem: { flexDirection: "row", alignItems: "center", gap: 4 },
   metaText: { fontSize: 13 },
-    progressContainer: {
-    marginTop: 8, // يمكنك تعديل المسافة حسب تصميمك
-    gap: 6,       // المسافة بين الشريط والنص
+  progressContainer: {
+    marginTop: 8,
+    gap: 6,
   },
   progressTrack: {
-    direction: "ltr",        // لجعل الشريط يملأ من اليمين لليسار
-    height: 8,               // سمك الشريط
-    borderRadius: 4,         // لتدوير الأطراف
-    overflow: "hidden",      // مهم جداً: لمنع الجزء الممتلئ من الخروج عن حدود الدائرة
+    direction: "ltr",
+    height: 8,
+    borderRadius: 4,
+    overflow: "hidden",
   },
-  progressFill: {height: "100%", borderRadius: 4},
+  progressFill: { height: "100%", borderRadius: 4 },
   completionText: { fontSize: 13, textAlign: "right", marginBottom: 20 },
   fullChapterBtn: {
     borderRadius: 10,
@@ -170,7 +170,6 @@ const s = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     gap: 8,
-    
   },
   fullQuizBtn: {
     borderRadius: 10,
@@ -188,5 +187,19 @@ const s = StyleSheet.create({
   chapterTitle: { fontSize: 15, fontWeight: "600", textAlign: "right", marginBottom: 6 },
   cardMeta: { flexDirection: "row", justifyContent: "flex-end", gap: 12 },
   metaSmall: { fontSize: 12 },
-  cardRight: { alignItems: "center", justifyContent: "center" },
+  cardRight: { 
+    flexDirection: "row", 
+    alignItems: "center", 
+    gap: 8,
+  },
+  chapterNumber: { 
+    fontSize: 23, 
+    fontWeight: "800",
+    paddingHorizontal: 8,
+  },
+  divider: {
+    width: 1,
+    height: 20,
+    borderRadius: 0.5,
+  },
 });

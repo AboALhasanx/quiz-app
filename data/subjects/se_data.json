@@ -5,6 +5,9 @@
     {
       "id": "ch1",
       "title": "مقدمة (Introduction)",
+      "malzama": "assets/pdfs/se/SE_Ch01.pdf",
+"summary": "assets/pdfs/se/Sum_SE_Ch01.pdf",
+
       "topics": [
         {
           "id": "t1",
@@ -593,6 +596,8 @@
     {
       "id": "ch2",
       "title": "عمليات البرمجيات (Software Processes)",
+      "malzama": "assets/pdfs/se/SE_Ch02.pdf",
+"summary": "assets/pdfs/se/Sum_SE_Ch02.pdf",
       "topics": [
         {
           "id": "t1",
@@ -1630,6 +1635,8 @@
     {
       "id": "ch3",
       "title": "تطوير البرمجيات المرن (Agile software development)",
+      "malzama": "assets/pdfs/se/SE_Ch03.pdf",
+"summary": "assets/pdfs/se/Sum_SE_Ch03.pdf",
       "topics": [
         {
           "id": "t1",
@@ -2800,6 +2807,8 @@
     {
       "id": "ch7",
       "title": "التصميم والتنفيذ (Design & Implementation)",
+      "malzama": "assets/pdfs/se/SE_Ch07.pdf",
+"summary": "assets/pdfs/se/Sum_SE_Ch07.pdf",
       "topics": [
         {
           "id": "t1",
@@ -3970,6 +3979,8 @@
     {
       "id": "ch8",
       "title": "اختبار البرمجيات (Software Testing)",
+      "malzama": "assets/pdfs/se/SE_Ch08.pdf",
+"summary": "assets/pdfs/se/Sum_SE_Ch08.pdf",
       "topics": [
         {
           "id": "t1",
@@ -5045,6 +5056,8 @@
     {
       "id": "ch9",
       "title": "تقييم البرمجيات (Software Evolution)",
+      "malzama": "assets/pdfs/se/SE_Ch09.pdf",
+"summary": "assets/pdfs/se/Sum_SE_Ch09.pdf",
       "topics": [
         {
           "id": "t1",
