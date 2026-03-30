@@ -99,19 +99,7 @@ export default function StatsScreen() {
     ]);
   };
 
-  const handleLogout = () => {
-    Alert.alert("تسجيل الخروج", "تبي تخرج؟", [
-      { text: "إلغاء", style: "cancel" },
-      {
-        text: "خروج",
-        style: "destructive",
-        onPress: async () => {
-          await logoutUser();
-          router.replace("/login");
-        },
-      },
-    ]);
-  };
+
 
   const filteredResults =
     selectedSubjectId === "all"
@@ -178,9 +166,7 @@ export default function StatsScreen() {
           <Text style={[s.title, { color: theme.textPrimary }]}>الإحصائيات</Text>
         </View>
 
-        <TouchableOpacity onPress={handleLogout}>
-          <Text style={{ color: theme.wrong, fontSize: 13, fontWeight: "bold" }}>خروج</Text>
-        </TouchableOpacity>
+
       </View>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.filterRow}>

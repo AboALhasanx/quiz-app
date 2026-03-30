@@ -61,12 +61,32 @@ export default function FlashcardsScreen() {
   const [fabOpen, setFabOpen] = useState(false);
   const flipAnim = useRef(new Animated.Value(0)).current;
 
+  // 1. استخراج بيانات المادة بشكل مستقل ليكون متاحاً في كل الصفحة
+  const subject = useMemo(() => loadSubjectDataById(params.subjectId ?? ""), [params.subjectId]);
+  
+  // 2. استخراج اسم المادة للـ Header
+  const subjectName = subject?.title || "";
+
+  // 3. استخراج اسم النطاق (الموضوع > الفصل > المادة)
+  const scopeName = useMemo(() => {
+    if (params.topicId) {
+      for (const ch of subject?.chapters || []) {
+        const topic = ch.topics?.find(t => t.id === params.topicId);
+        if (topic) return topic.title || topic.title || "";
+      }
+    }
+    if (params.chapterId) {
+      const ch = subject?.chapters?.find(c => c.id === params.chapterId);
+      if (ch) return ch.title || ch.title || "";
+    }
+    return subjectName;
+  }, [subject, params.topicId, params.chapterId, subjectName]);
+
   const questions = useMemo(() => {
-    const subject = loadSubjectDataById(params.subjectId ?? "");
     const bank = getScopedQuestions(subject, params.chapterId, params.topicId);
     const finalCount = getSelectedQuestionCount(bank.length, percentage);
     return order === "random" ? shuffle(bank).slice(0, finalCount) : bank.slice(0, finalCount);
-  }, [params.subjectId, params.chapterId, params.topicId, percentage, order]);
+  }, [subject, params.chapterId, params.topicId, percentage, order]);
 
   const question = questions[current];
   const textAlign = lang === "en" ? "left" : "right";
@@ -88,7 +108,6 @@ export default function FlashcardsScreen() {
 
   const labels = lang === "en"
     ? {
-        title: "Flashcards",
         counter: `Card ${Math.min(current + 1, questions.length)} of ${questions.length}`,
         explanation: "Explanation",
         previous: "Previous",
@@ -104,7 +123,6 @@ export default function FlashcardsScreen() {
         theme: "Theme",
       }
     : {
-        title: "فلاش كارد",
         counter: `البطاقة ${Math.min(current + 1, questions.length)} من ${questions.length}`,
         explanation: "الشرح",
         previous: "السابق",
@@ -129,13 +147,11 @@ export default function FlashcardsScreen() {
 
   const toggleBookmark = async () => {
     if (!question) return;
-
     if (bookmarked) {
       await removeBookmark(question.id);
       setBookmarked(false);
       return;
     }
-
     await saveBookmark(question.id, params.subjectId ?? "");
     setBookmarked(true);
   };
@@ -145,7 +161,6 @@ export default function FlashcardsScreen() {
       router.replace(`/chapter/${params.chapterId}?subjectId=${params.subjectId}` as any);
       return;
     }
-
     router.replace(`/subject/${params.subjectId}` as any);
   };
 
@@ -181,12 +196,20 @@ export default function FlashcardsScreen() {
             <Text style={{ color: theme.textSecondary, fontSize: 16 }}>✕</Text>
           </TouchableOpacity>
 
-          <Text style={{ color: theme.textPrimary, fontWeight: "bold", fontSize: 18 }}>
-            {labels.title}
+          {/* 4. تغيير التايتل بار ليكون اسم المادة */}
+          <Text style={{ color: theme.textPrimary, fontWeight: "bold", fontSize: 18 }} numberOfLines={1}>
+            {subjectName}
           </Text>
 
           <View style={{ width: 44 }} />
         </View>
+
+        {/* 5. إضافة اسم الموضوع/الفصل كعنوان فرعي */}
+        {scopeName !== "" && (
+          <Text style={{ color: theme.textPrimary, fontSize: 15, fontWeight: "600", textAlign: "center", marginBottom: 4 }}>
+            {scopeName}
+          </Text>
+        )}
 
         <Text style={{ color: theme.textSecondary, fontSize: 13, textAlign: "center", marginBottom: 12 }}>
           {labels.counter}
@@ -231,41 +254,44 @@ export default function FlashcardsScreen() {
                 },
               ]}
             >
-              <View style={[s.answerBox, { backgroundColor: theme.background, borderColor: theme.correct + "44" }]}>
-                <Text style={{ color: theme.correct, fontSize: 14, fontWeight: "bold", marginBottom: 8 }}>
-                  {labels.correctAnswer}
-                </Text>
-                <Text
-                  style={{
-                    color: theme.textPrimary,
-                    fontSize: 15,
-                    lineHeight: 24,
-                    textAlign,
-                    writingDirection,
-                  }}
-                >
-                  {correctAnswerText}
-                </Text>
-              </View>
-
-              {explanationText !== "" && (
-                <View style={[s.answerBox, { backgroundColor: theme.background, borderColor: theme.explain + "44" }]}>
-                  <Text style={{ color: theme.explain, fontSize: 14, fontWeight: "bold", marginBottom: 8 }}>
-                    {labels.explanation}
+              {/* إضافة ScrollView للوجه الخلفي لحل مشكلة النصوص الطويلة */}
+              <ScrollView showsVerticalScrollIndicator={false}>
+                <View style={[s.answerBox, { backgroundColor: theme.background, borderColor: theme.correct + "44" }]}>
+                  <Text style={{ color: theme.correct, fontSize: 14, fontWeight: "bold", marginBottom: 8 }}>
+                    {labels.correctAnswer}
                   </Text>
                   <Text
                     style={{
                       color: theme.textPrimary,
-                      fontSize: 14,
+                      fontSize: 15,
                       lineHeight: 24,
                       textAlign,
                       writingDirection,
                     }}
                   >
-                    {explanationText}
+                    {correctAnswerText}
                   </Text>
                 </View>
-              )}
+
+                {explanationText !== "" && (
+                  <View style={[s.answerBox, { backgroundColor: theme.background, borderColor: theme.explain + "44" }]}>
+                    <Text style={{ color: theme.explain, fontSize: 14, fontWeight: "bold", marginBottom: 8 }}>
+                      {labels.explanation}
+                    </Text>
+                    <Text
+                      style={{
+                        color: theme.textPrimary,
+                        fontSize: 14,
+                        lineHeight: 24,
+                        textAlign,
+                        writingDirection,
+                      }}
+                    >
+                      {explanationText}
+                    </Text>
+                  </View>
+                )}
+              </ScrollView>
             </Animated.View>
           </View>
         </Pressable>
@@ -364,14 +390,18 @@ const s = StyleSheet.create({
     borderWidth: 1,
   },
   cardWrap: {
-    minHeight: 360,
-    position: "relative",
+    height: 360, // تم التغيير ليكون ثابت
+    position: 'relative',
   },
   cardFace: {
+    position: 'absolute', // تم الإضافة لحل مشكلة المساحة
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     borderRadius: 18,
     padding: 18,
     borderWidth: 1,
-    minHeight: 360,
     backfaceVisibility: "hidden",
     justifyContent: "center",
   },

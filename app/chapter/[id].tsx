@@ -62,9 +62,30 @@ export default function ChapterScreen() {
           </View>
         </View>
 
-        <Text style={[s.completionText, { color: theme.textSecondary }]}>
-          تم إنهاء {completedTopicsCount} من {chapter.topics.length} مواضيع
-        </Text>
+        {/* حساب النسبة المئوية */}
+{chapter.topics.length > 0 && (
+  <View style={s.progressContainer}>
+    
+    {/* شريط التقدم نفسه */}
+    <View style={[s.progressTrack, { backgroundColor: theme.secondary + "22" }]}>
+      <View
+        style={[
+          s.progressFill,
+          {
+            backgroundColor: theme.primary,
+            width: `${(completedTopicsCount / chapter.topics.length) * 100}%`,
+          },
+        ]}
+      />
+    </View>
+
+    {/* النص أسفل الشريط */}
+    <Text style={[s.completionText, { color: theme.textSecondary }]}>
+      تم إنهاء {completedTopicsCount} من {chapter.topics.length} مواضيع
+    </Text>
+    
+  </View>
+)}
 
         <TouchableOpacity
           style={[s.fullChapterBtn, { backgroundColor: theme.primary }]}
@@ -135,15 +156,6 @@ const s = StyleSheet.create({
   },
   metaItem: { flexDirection: "row", alignItems: "center", gap: 4 },
   metaText: { fontSize: 13 },
-  completionText: { fontSize: 13, textAlign: "right", marginBottom: 14 },
-  fullChapterBtn: {
-    borderRadius: 10,
-    padding: 12,
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 8,
-  },
   fullChapterBtnText: { color: "#fff", fontWeight: "bold", fontSize: 14 },
   sectionTitle: { fontSize: 16, fontWeight: "bold", textAlign: "right", marginBottom: 12 },
   topicCard: { borderRadius: 14, padding: 14, marginBottom: 10, borderWidth: 1 },
@@ -168,5 +180,31 @@ const s = StyleSheet.create({
     alignItems: "center",
     gap: 4,
   },
+    progressContainer: {
+    marginTop: 8, // يمكنك تعديل المسافة حسب تصميمك
+    gap: 6,       // المسافة بين الشريط والنص
+  },
+  progressTrack: {
+    direction: "ltr",        // لجعل الشريط يملأ من اليمين لليسار
+    height: 8,               // سمك الشريط
+    borderRadius: 4,         // لتدوير الأطراف
+    overflow: "hidden",      // مهم جداً: لمنع الجزء الممتلئ من الخروج عن حدود الدائرة
+  },
+  progressFill: {
+    height: "100%",          // يأخذ نفس ارتفاع الخلفية
+    borderRadius: 4        // نفس تدوير الخلفية
+    // إضافة حركة انتقالية سلسة عند تغير النسبة
+  },
+  completionText: { fontSize: 13, textAlign: "right", marginBottom: 20 },
+  fullChapterBtn: {
+    borderRadius: 10,
+    padding: 12,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 8,
+    
+  },
   startBtnText: { color: "#fff", fontWeight: "bold", fontSize: 13 },
 });
+

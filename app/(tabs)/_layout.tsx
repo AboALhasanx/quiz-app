@@ -21,8 +21,12 @@ export default function TabsLayout() {
         options={{
           title: "الرئيسية",
           tabBarLabel: "الرئيسية",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="home-outline" color={color} size={size} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons 
+              name={focused ? "home" : "home-outline"} 
+              color={color} 
+              size={size} 
+            />
           ),
         }}
       />
@@ -31,8 +35,12 @@ export default function TabsLayout() {
         options={{
           title: "إحصائياتي",
           tabBarLabel: "إحصائياتي",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="bar-chart-outline" color={color} size={size} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons 
+              name={focused ? "bar-chart" : "bar-chart-outline"} 
+              color={color} 
+              size={size} 
+            />
           ),
         }}
       />
@@ -41,8 +49,12 @@ export default function TabsLayout() {
         options={{
           title: "المحفوظات",
           tabBarLabel: "المحفوظات",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="bookmark-outline" color={color} size={size} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons 
+              name={focused ? "bookmark" : "bookmark-outline"} 
+              color={color} 
+              size={size} 
+            />
           ),
         }}
       />

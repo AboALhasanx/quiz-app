@@ -88,18 +88,7 @@ export default function HomeScreen() {
               onPress={() => router.push(`/subject/${item.id}` as any)}
               activeOpacity={0.75}
             >
-              <View style={s.cardTop}>
-                <View style={[s.codeBadge, { backgroundColor: theme.primary + "22" }]}>
-                  <Text style={[s.codeText, { color: theme.primary }]}>{code}</Text>
-                </View>
-                {last && (
-                  <View style={[s.scoreBadge, { backgroundColor: getScoreColor(last.percentage) + "22" }]}>
-                    <Text style={[s.scoreText, { color: getScoreColor(last.percentage) }]}>
-                      آخر نتيجة: {last.percentage}%
-                    </Text>
-                  </View>
-                )}
-              </View>
+              
 
               <Text style={[s.title, { color: theme.textPrimary }]}>{item.title}</Text>
 
@@ -115,19 +104,7 @@ export default function HomeScreen() {
                 )}
               </View>
 
-              {last && (
-                <View style={[s.progressBg, { backgroundColor: theme.secondary + "44" }]}>
-                  <View
-                    style={[
-                      s.progressFill,
-                      {
-                        width: `${last.percentage}%`,
-                        backgroundColor: getScoreColor(last.percentage),
-                      },
-                    ]}
-                  />
-                </View>
-              )}
+              
 
               <Text style={[s.arrow, { color: theme.textSecondary }]}>←</Text>
             </TouchableOpacity>
@@ -170,8 +147,6 @@ const s = StyleSheet.create({
   },
   meta: { fontSize: 12 },
   dot: { fontSize: 12 },
-  progressBg: { height: 4, borderRadius: 2, marginBottom: 8 },
-  progressFill: { height: 4, borderRadius: 2 },
   arrow: { position: "absolute", left: 16, top: "50%", fontSize: 18 },
   logoutBtn: {
     borderRadius: 14,
