@@ -11,6 +11,7 @@ import {
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Ionicons } from "@expo/vector-icons";
+import { Audio } from "expo-av"; // <-- 1. إضافة استدعاء الصوت
 import { useTheme } from "../../utils/ThemeContext";
 import {
   AnswerMap,
@@ -116,6 +117,40 @@ export default function QuizPlayScreen() {
   const [sessionChecked, setSessionChecked] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const questionsRef = useRef<ShuffledQuestion[]>([]);
+
+  // <-- 2. تعريف مراجع الصوت
+  const correctSoundRef = useRef<Audio.Sound | null>(null);
+  const wrongSoundRef = useRef<Audio.Sound | null>(null);
+
+  // <-- 3. تحميل الصوتات مرة واحدة عند فتح الصفحة
+  useEffect(() => {
+    let isMounted = true;
+    
+    const loadSounds = async () => {
+      try {
+        const { sound: cSound } = await Audio.Sound.createAsync(require("../../assets/sounds/correct.mp3"));
+        const { sound: wSound } = await Audio.Sound.createAsync(require("../../assets/sounds/wrong.mp3"));
+        
+        if (isMounted) {
+          correctSoundRef.current = cSound;
+          wrongSoundRef.current = wSound;
+        } else {
+          cSound.unloadAsync();
+          wSound.unloadAsync();
+        }
+      } catch (error) {
+        console.log("Error loading sounds:", error);
+      }
+    };
+
+    loadSounds();
+
+    return () => {
+      isMounted = false;
+      correctSoundRef.current?.unloadAsync();
+      wrongSoundRef.current?.unloadAsync();
+    };
+  }, []);
 
   const loadQuestionBank = useCallback((): SubjectQuestion[] => {
     const subject = loadSubjectDataById(params.subjectId ?? "");
@@ -305,6 +340,15 @@ export default function QuizPlayScreen() {
     setBookmarked(true);
   };
 
+  // <-- 4. دالة تشغيل الصوت
+  const playAnswerSound = async (isCorrect: boolean) => {
+    const sound = isCorrect ? correctSoundRef.current : wrongSoundRef.current;
+    if (sound) {
+      // نستخدم replayAsync عوضاً عن playAsync لكي يعمل حتى لو تم تشغيله مرة سابقاً
+      await sound.replayAsync();
+    }
+  };
+
   const handleAnswer = (displayIndex: number) => {
     if (!question) return;
     if (mode === "recitation" && revealed) return;
@@ -320,6 +364,8 @@ export default function QuizPlayScreen() {
 
     if (mode === "recitation") {
       setRevealed(true);
+      // <-- 5. تشغيل الصوت بناءً على الإجابة في وضع الاستذكار فقط
+      playAnswerSound(originalIndex === question.answer);
     }
   };
 
