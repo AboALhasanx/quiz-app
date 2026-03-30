@@ -7,16 +7,19 @@
     "icon": "./assets/images/icon.png",
     "scheme": "quizapp",
     "userInterfaceStyle": "automatic",
-    "backgroundColor": "#EDDEC7",
+    "backgroundColor": "#0B1C2E",
+    "splash": {
+      "backgroundColor": "#0B1C2E"
+    },
     "ios": {
       "supportsTablet": true
     },
     "android": {
       "package": "com.aboalhasannn.competitivesoftware",
-      "backgroundColor": "#EDDEC7",
+      "backgroundColor": "#0B1C2E",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/icon.png",
-        "backgroundColor": "#EDDEC7"
+        "backgroundColor": "#0B1C2E"
       }
     },
     "web": {
@@ -25,13 +28,6 @@
     },
     "plugins": [
       "expo-router",
-      [
-        "expo-splash-screen",
-        {
-          "backgroundColor": "#0B1C2E",
-          "resizeMode": "contain"
-        }
-      ],
       "expo-font",
       "expo-image",
       "expo-web-browser",
