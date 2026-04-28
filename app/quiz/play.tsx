@@ -6,6 +6,7 @@ import ds501 from "../../data/subjects/ds501.json";
 import { saveBookmark, removeBookmark, isBookmarked, saveSession, getSession, clearSession } from "../../utils/storage";
 import { fetchQuestionHistory } from "../../utils/firebase";
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const SUBJECTS: Record<string, typeof ds501> = { ds501 };
 
@@ -49,6 +50,7 @@ export default function QuizPlayScreen() {
   const [timeLeft,       setTimeLeft]       = useState<number | null>(null);
   const [bookmarked,     setBookmarked]     = useState(false);
   const [sessionChecked, setSessionChecked] = useState(false);
+  const [muted,          setMuted]          = useState(false);
   
 
   const answersRef   = useRef<Record<string, string>>({});
@@ -183,6 +185,18 @@ const loadFresh = async () => {
     isBookmarked(questions[current].id).then(setBookmarked);
   }, [current, questions]);
 
+  useEffect(() => {
+    AsyncStorage.getItem("sound_muted").then(val => {
+      if (val !== null) setMuted(val === "true");
+    });
+  }, []);
+
+  const toggleMute = async () => {
+    const next = !muted;
+    setMuted(next);
+    await AsyncStorage.setItem("sound_muted", next ? "true" : "false");
+  };
+
   const finishQuiz = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current);
     clearSession();
@@ -249,6 +263,18 @@ const loadFresh = async () => {
     else { setCurrent(i => i + 1); setRevealed(false); }
   };
 
+  const handleNextOrFinish = () => {
+    if (current + 1 >= questions.length) {
+      Alert.alert("Confirm", "End quiz?", [
+        { text: "Cancel", style: "cancel" },
+        { text: "End", onPress: finishQuiz },
+      ]);
+    } else {
+      setCurrent(i => i + 1);
+      setRevealed(false);
+    }
+  };
+
   const getOptionStyle = (index: number) => {
     if (!q) return s.option;
     const chosenText  = answers[q.id];
@@ -293,21 +319,30 @@ const loadFresh = async () => {
   return (
     <View style={s.container}>
       <View style={s.header}>
-        <TouchableOpacity
-          onPress={() =>
-            Alert.alert(
-              "خروج من الكوز",
-              "لو خرجت الحين راح يتحفظ تقدمك وتقدر تكمل لاحقاً",
-              [
-                { text: "تراجع", style: "cancel" },
-                { text: "خروج", style: "destructive", onPress: () => router.back() },
-              ]
-            )
-          }
-          style={s.exitBtn}
-        >
-          <Text style={s.exitText}>✕</Text>
-        </TouchableOpacity>
+          <View style={{ flexDirection: "row", gap: 8 }}>
+            <TouchableOpacity
+              onPress={() =>
+                Alert.alert(
+                  "خروج من الكوز",
+                  "لو خرجت الحين راح يتحفظ تقدمك وتقدر تكمل لاحقاً",
+                  [
+                    { text: "تراجع", style: "cancel" },
+                    { text: "خروج", style: "destructive", onPress: () => router.back() },
+                  ]
+                )
+              }
+              style={s.exitBtn}
+            >
+              <Text style={s.exitText}>✕</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={toggleMute} style={s.muteBtn}>
+              <Ionicons
+                name={muted ? "volume-mute-outline" : "volume-high-outline"}
+                size={20}
+                color={Colors.textMuted}
+              />
+            </TouchableOpacity>
+          </View>
 
         <Text style={s.counter}>{current + 1} / {questions.length}</Text>
 
@@ -350,20 +385,40 @@ const loadFresh = async () => {
             <Text style={[s.feedbackText, chosenText === q.correctText ? s.correct : s.wrong]}>
               {chosenText === q.correctText ? "✅ إجابة صحيحة!" : "❌ إجابة خاطئة"}
             </Text>
-            <TouchableOpacity style={s.nextBtn} onPress={nextQuestion}>
-              <Text style={s.nextBtnText}>
-                {current + 1 >= questions.length ? "🏁 إنهاء" : "التالي ←"}
-              </Text>
-            </TouchableOpacity>
+            <View style={s.navRow}>
+              {current > 0 && (
+                <TouchableOpacity
+                  style={s.prevBtn}
+                  onPress={() => { setCurrent(i => i - 1); setRevealed(false); }}
+                >
+                  <Text style={s.prevBtnText}>السابق →</Text>
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity style={s.nextBtn} onPress={handleNextOrFinish}>
+                <Text style={s.nextBtnText}>
+                  {current + 1 >= questions.length ? "Finish" : "التالي ←"}
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
         )}
 
         {mode === "paper" && chosenText !== undefined && (
-          <TouchableOpacity style={s.nextBtn} onPress={nextQuestion}>
-            <Text style={s.nextBtnText}>
-              {current + 1 >= questions.length ? "🏁 إنهاء وعرض النتيجة" : "التالي ←"}
-            </Text>
-          </TouchableOpacity>
+          <View style={s.navRow}>
+            {current > 0 && (
+              <TouchableOpacity
+                style={s.prevBtn}
+                onPress={() => { setCurrent(i => i - 1); setRevealed(false); }}
+              >
+                <Text style={s.prevBtnText}>السابق →</Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity style={s.nextBtn} onPress={handleNextOrFinish}>
+              <Text style={s.nextBtnText}>
+                {current + 1 >= questions.length ? "Finish" : "التالي ←"}
+              </Text>
+            </TouchableOpacity>
+          </View>
         )}
       </ScrollView>
     </View>
@@ -397,6 +452,10 @@ const s = StyleSheet.create({
   feedbackText:   { fontSize: 16, fontWeight: "bold" },
   correct:        { color: Colors.correct },
   wrong:          { color: Colors.wrong },
-  nextBtn:        { backgroundColor: Colors.primary, borderRadius: 12, padding: 16, alignItems: "center", marginTop: 16 },
+  nextBtn:        { backgroundColor: Colors.primary, borderRadius: 12, padding: 16, alignItems: "center", flex: 1 },
   nextBtnText:    { color: "#fff", fontWeight: "bold", fontSize: 16 },
+  navRow:         { flexDirection: "row", gap: 10, marginTop: 16 },
+  prevBtn:        { flex: 1, backgroundColor: Colors.card, borderRadius: 12, padding: 16, alignItems: "center", borderWidth: 1, borderColor: Colors.border },
+  prevBtnText:    { color: Colors.text, fontWeight: "bold", fontSize: 16 },
+  muteBtn:        { width: 36, height: 36, borderRadius: 18, backgroundColor: Colors.card, justifyContent: "center", alignItems: "center" },
 });
